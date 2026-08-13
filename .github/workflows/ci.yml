@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: 22.14.0
+  NODE_VERSION: 22.22.3
 
 jobs:
   quality:

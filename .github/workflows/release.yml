@@ -27,14 +27,17 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.14.0
+          node-version: 22.22.3
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
       # pnpm for install (strict dependency graph, no phantom deps),
       # npm CLI for publish (OIDC trusted publishing is only reliable there).
       - name: Pin npm CLI for trusted publishing
-        run: npm install -g npm@latest
+        # Pinned, not @latest: OIDC trusted publishing needs npm >= 11.5.1, and
+        # npm 11 requires Node >= 22.9.0 (wider than npm 12's ^22.22.2), so it
+        # stays compatible even if the Node pin moves. Bump deliberately.
+        run: npm install -g npm@11.5.1
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
@@ -65,7 +68,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.14.0
+          node-version: 22.22.3
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build-storybook

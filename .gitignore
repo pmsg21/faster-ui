@@ -7,8 +7,9 @@ cypress/videos/
 .DS_Store
 *.log
 
-# Local agent tooling — regenerable from skills-lock.json, not deliverable source
+# Local agent tooling and working notes — for future Claude sessions, not the repo
 .agents/
 .claude/
+CLAUDE.md
 .env
 .env.local
