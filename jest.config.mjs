@@ -14,6 +14,8 @@ const config = {
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.stories.tsx',
+    // Cypress specs are never run by Jest, so they'd count as 0%-covered source.
+    '!src/**/*.cy.tsx',
     '!src/**/index.ts',
     '!src/**/*.d.ts',
   ],
