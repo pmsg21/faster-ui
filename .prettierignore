@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+storybook-static
+pnpm-lock.yaml
+.changeset
+
+# Vendored agent tooling — not ours to format
+.agents/
+.claude/

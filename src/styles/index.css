@@ -1,0 +1,34 @@
+@import 'tailwindcss';
+
+/* Storybook, tests and the built package all enter through this file. */
+@source '../**/*.{ts,tsx}';
+
+/**
+ * ── TOKEN LAYERS ─────────────────────────────────────────────────────────
+ *
+ * Layer 1 — PRIMITIVES live in :root below. Raw values, no meaning.
+ *           Components must NEVER reference these directly.
+ *
+ * Layer 2 — SEMANTIC tokens are declared in @theme. They encode intent
+ *           and are the public API of the design system.
+ *
+ * Why the split, and why @theme is NOT `@theme inline`:
+ * `@theme inline` bakes the value into the utility at build time, which
+ * silently breaks runtime theming — bg-surface-base would be frozen at its
+ * light value even after [data-theme='dark'] is applied. Non-inline @theme
+ * keeps the var() indirection, so a mode switch is one attribute change.
+ *
+ * Populate the blocks below from the Figma token source.
+ */
+
+:root {
+  /* Layer 1 — primitives */
+}
+
+[data-theme='dark'] {
+  /* Layer 1 — dark overrides */
+}
+
+@theme {
+  /* Layer 2 — semantic tokens mapped to the primitives above */
+}

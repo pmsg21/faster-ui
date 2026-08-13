@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["cypress", "cypress-axe", "@testing-library/cypress"]
+  },
+  // Own exclude so it does NOT inherit the root's "**/*.cy.tsx" exclusion —
+  // those files are exactly what this project must cover.
+  "exclude": [],
+  "include": ["**/*.ts", "**/*.tsx", "../src/**/*.cy.tsx"]
+}

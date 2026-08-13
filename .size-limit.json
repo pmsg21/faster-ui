@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Full library (ESM)",
+    "path": "dist/index.js",
+    "limit": "15 kB",
+    "ignore": ["react", "react-dom"]
+  }
+]

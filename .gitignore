@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+storybook-static/
+cypress/screenshots/
+cypress/videos/
+.DS_Store
+*.log
+
+# Local agent tooling — regenerable from skills-lock.json, not deliverable source
+.agents/
+.claude/
+.env
+.env.local

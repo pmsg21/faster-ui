@@ -1,0 +1,4 @@
+# Deliberately NOT a full build: that belongs in CI.
+# These two catch the same class of error in a fraction of the time.
+pnpm typecheck
+pnpm test
