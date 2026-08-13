@@ -1,0 +1,3 @@
+# Normalize line endings: store LF in the repo, check out LF everywhere.
+# Keeps Prettier's `endOfLine: lf` from fighting Git's core.autocrlf on Windows.
+* text=auto eol=lf
