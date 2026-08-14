@@ -6,6 +6,8 @@ React · TypeScript · Tailwind CSS v4 · Storybook · Jest · Cypress · GitHub
 
 > **Status:** scaffold. Tokens and components are not implemented yet.
 
+**Live Storybook:** https://pmsg21.github.io/faster-ui/ · **npm:** [`@pmsg21/faster-ui`](https://www.npmjs.com/package/@pmsg21/faster-ui)
+
 ## Getting started
 
 ```bash
