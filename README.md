@@ -55,6 +55,23 @@ opt in or the component classes get purged:
 The consumer must also be on Tailwind v4. A v3 app will not pick up these
 classes.
 
+## Releasing
+
+Releases go through [Changesets](https://github.com/changesets/changesets) and
+publish from CI. **No publishing credential lives in the repo** — not in the
+code, and not in repo or environment secrets.
+
+1. A change ships with a changeset (`pnpm changeset`) recording the bump
+   (`patch` / `minor` / `major`) and a consumer-facing note.
+2. Merging it to `main` opens a **Version Packages** PR that applies the bump and
+   updates `CHANGELOG.md`. A maintainer approves and merges it — a deliberate
+   human checkpoint before a version reaches consumers (see
+   [docs/decisions.md](docs/decisions.md)).
+3. That merge publishes to npm via **OIDC trusted publishing**: GitHub Actions
+   proves its identity to npm directly, so no `NPM_TOKEN` is needed. Every
+   release ships a signed **provenance attestation** linking the tarball to the
+   exact commit and workflow run.
+
 ## Conventions
 
 - **Conventional Commits**, enforced by commitlint on `commit-msg`.
