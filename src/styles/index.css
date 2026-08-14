@@ -243,14 +243,18 @@
  * repeated here; only surfaces, text and borders flip.
  *
  * NOTE (source limitation): the neutral ramp's dark end is shallow — between
- * #1F1F1F (700) and #4B4B4B (600) there is no intermediate step — so dark
- * elevation leans on borders and shadow rather than many surface tints. Flagged
- * in docs/accessibility.md; not "fixed" by inventing a grey the source lacks.
+ * #1F1F1F (700) and #4B4B4B (600) there is no intermediate step — so base,
+ * raised and overlay all resolve to #1F1F1F. And the elevation shadows are
+ * black at 6–12% alpha, which over #1F1F1F is imperceptible (elevation-4
+ * measures ~1.05:1 against the surface). So in dark an elevated surface is
+ * separated by a VISIBLE BORDER, not tint or shadow — the border is
+ * load-bearing, an obligation on Dialog/popover recorded in CLAUDE.md and
+ * docs/accessibility.md. Not "fixed" by inventing a grey the source lacks.
  */
 [data-theme='dark'] {
-  /* base/raised/overlay share #1F1F1F: the ramp offers no dark step between
-   * #1F1F1F and #4B4B4B, and #4B4B4B is too light to seat body text, so these
-   * layers are held flat and separated by shadow/border rather than tint. */
+  /* base/raised/overlay all resolve to #1F1F1F (see the note above): elevation
+   * is carried by a visible border in dark, since neither tint nor shadow
+   * separates these layers. */
   --color-surface-base: var(--neutral-700);
   --color-surface-raised: var(--neutral-700);
   --color-surface-overlay: var(--neutral-700);

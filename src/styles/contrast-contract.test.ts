@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
   colorTokens,
   contrastRatio,
+  findBrokenSharedValueClaims,
   findStaleReferences,
   findUnaccountedTokens,
   findViolations,
@@ -100,6 +101,10 @@ describe('the shipped stylesheet honours the contract', () => {
   it('has no contract entry referencing a token the theme dropped', () => {
     expect(findStaleReferences(theme)).toEqual([]);
   });
+
+  it('holds every declared shared-value claim', () => {
+    expect(findBrokenSharedValueClaims(theme)).toEqual([]);
+  });
 });
 
 describe('the guards actually bite', () => {
@@ -142,7 +147,25 @@ describe('the guards actually bite', () => {
 
   it('flags a contract reference the theme no longer defines', () => {
     const shrunk = clone();
+    // Both modes — colorTokens unions them, so a token surviving in either is defined.
     delete shrunk.light['ring-focus'];
+    delete shrunk.dark['ring-focus'];
     expect(findStaleReferences(shrunk)).toContain('ring-focus');
+  });
+
+  it('flags a shared-value claim that no longer holds', () => {
+    const diverged = clone();
+    diverged.dark['surface-overlay'] = '#000000'; // no longer mirrors surface-raised
+    expect(findBrokenSharedValueClaims(diverged).join('\n')).toMatch(/surface-overlay/);
+  });
+
+  it('catches a token defined only in the dark block (a hole in the guard)', () => {
+    const darkOnly = parseTheme(`
+      :root { --danger-700: #ec2d30; }
+      @theme { --color-text-primary: #1f1f1f; }
+      [data-theme='dark'] { --color-text-warning: var(--danger-700); }
+    `);
+    expect(colorTokens(darkOnly)).toContain('text-warning');
+    expect(findUnaccountedTokens(darkOnly)).toContain('text-warning');
   });
 });

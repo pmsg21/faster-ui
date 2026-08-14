@@ -53,6 +53,11 @@ level** — and, crucially, made impossible to ship _unknowingly_.
 
 - **Cyan as foreground on white** (`text-accent`, links): 2.03–2.12:1 at every step.
   Mitigation: pair with an icon and neutral text, or place on a tinted surface.
+  **Decision for ghost/link buttons:** the label uses a _neutral_ foreground
+  (`text-primary`), not the cyan — cyan-on-white (2.12) and cyan-on-`accent-subtle`
+  (2.02) both fail AA, and a button label must be legible. `text-accent` is reserved for
+  genuine hyperlink text and non-text accent (icon, border, hover fill). The neutral
+  label is verified: `text-primary` on `accent-subtle` is 15.67 (light) / 8.36 (dark).
 - **Focus ring** (`border-focus`/`ring-focus` on white): 1.88–2.12:1 vs the 3.0 that
   SC 1.4.11 requires. Mitigation: the Input resolves focus visibility with a neutral
   offset/halo, not the cyan alone.
@@ -74,6 +79,7 @@ in dark the brand hues sit on dark surfaces, where they have contrast to spare.
 | -------------- | ------------------- | -------- | -------- |
 | text-primary   | surface-base        | 15.79 ✅ | 15.79 ✅ |
 | text-primary   | surface-raised      | 16.48 ✅ | 15.79 ✅ |
+| text-primary   | accent-subtle       | 15.67 ✅ | 8.36 ✅  |
 | text-secondary | surface-base        | 8.36 ✅  | 12.60 ✅ |
 | text-secondary | surface-raised      | 8.72 ✅  | 12.60 ✅ |
 | text-on-accent | accent-solid        | 7.78 ✅  | 7.78 ✅  |
@@ -91,15 +97,25 @@ in dark the brand hues sit on dark surfaces, where they have contrast to spare.
 
 Disabled text (`text-disabled`) is WCAG-exempt and not tabled.
 
-## A palette limitation worth naming: no dark chromatic tint
+## Palette limitations worth naming
 
-The ramp has eight steps per hue, all light-to-mid. There is **no dark tint** — no
-"danger surface for dark mode." So in dark, the subtle brand surfaces (`accent-subtle`,
-`danger-subtle`) degrade to a neutral hover wash (`neutral-600`); a ghost control's
-brand identity is then carried by its text and border, not its fill. The neutral ramp
-is likewise shallow at the dark end (nothing between `#1F1F1F` and `#4B4B4B`), so dark
-surface elevation leans on shadow and border rather than many surface tints. Both are
-recorded as limitations of an 8-step ramp, not patched with invented values.
+Two consequences of an 8-step, light-to-mid ramp. Both are recorded, not patched with
+invented values.
+
+**No dark chromatic tint.** There is no "danger surface for dark mode." So in dark, the
+subtle brand surfaces (`accent-subtle`, `danger-subtle`) degrade to a neutral hover wash
+(`neutral-600`); a ghost control's brand identity is then carried by its text and border,
+not its fill.
+
+**Dark elevation is a border, not a shadow.** The neutral ramp is shallow at the dark
+end (nothing between `#1F1F1F` and `#4B4B4B`, which is too light to seat body text), so
+`surface-base`, `surface-raised` and `surface-overlay` all resolve to `#1F1F1F`. The
+elevation shadows are black at 6–12% alpha, and **over `#1F1F1F` that is imperceptible —
+`elevation-4` measures ~1.05:1 against the surface.** So a dark-mode Dialog does not
+separate from the page behind it by tint or shadow; **it must carry a visible border.**
+That makes the border load-bearing in dark rather than decorative — an explicit
+obligation on Dialog/popover, recorded in [CLAUDE.md](../CLAUDE.md) so the component
+session sees it first.
 
 ## The contract
 

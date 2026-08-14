@@ -108,10 +108,28 @@ tooling`) — no file-by-file bodies; the diff carries detail.
   real export lands.
 - `collectCoverageFrom` excludes `*.cy.tsx`; the `coverageThreshold` (branches 80,
   functions/lines/statements 85) is now **live** — `contrast-contract.ts` is the first
-  counted source (96/95/100/100). `index.ts` is excluded, so it stays empty-safe.
+  counted source (96/89/100/100). `index.ts` is excluded, so it stays empty-safe.
 - `./styles.css` export removed until the build emits CSS — restore when the first
   component imports the stylesheet (TODO in `vite.config.ts`).
 - CI caches the Cypress binary at `~/.cache/Cypress` and runs `cypress install`
   explicitly, because a warm pnpm cache skips the postinstall that downloads it.
 - Cypress 13 warns React 19 / Vite 6 aren't officially supported (works; a Cypress
   15 bump clears it) — deferred.
+
+### Obligations the token layer hands to the component sessions
+
+These are accessibility decisions the contrast contract records but a _token_ can't
+enforce — they land when the component is built. Full detail in
+[docs/accessibility.md](docs/accessibility.md).
+
+- **Dark-mode elevation is a border, not a shadow.** In dark, `surface-base/raised/
+overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is imperceptible
+  (`elevation-4` ≈ 1.05:1). **Dialog/popover must carry a visible border in dark** —
+  nothing else separates an elevated surface from the page.
+- **Focus-ring visibility (Input).** The brand cyan ring is below SC 1.4.11 on white
+  (≤2.12:1). Input completes focus with a neutral offset/halo, not the cyan alone.
+- **Non-text border contrast (Input).** `border-subtle`/`border-default`/`border-danger`
+  are below 3:1 on white; the field must be identifiable by more than its border (label,
+  fill, focus), verified in the component's own tests.
+- **Ghost/link button labels use a neutral foreground**, not `text-accent` — cyan fails
+  AA on white (2.12) and on `accent-subtle` (2.02). Cyan is for links and non-text accent.

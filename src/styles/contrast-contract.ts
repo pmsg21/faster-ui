@@ -13,10 +13,11 @@
  *     conflict, a transient state) that later climbs back above it also fails —
  *     a stale exemption is a lie we stop telling.
  *
- *  2. OMISSIONS — the set of colour tokens is read from the compiled stylesheet
- *     (the source of truth), and every one must be ACCOUNTED FOR: named in a
- *     pair, or listed in IGNORED with a reason. Add a token and forget to decide
- *     where it lives, and the build goes red. The gap can't hide.
+ *  2. OMISSIONS — the set of colour tokens is read from the stylesheet (the
+ *     source of truth), and every one must be ACCOUNTED FOR: named in a pair, or
+ *     listed in IGNORED / SHARED_VALUE with a reason. Add a token and forget to
+ *     decide where it lives, and the build goes red. The gap can't hide. A
+ *     "shares another token's value" reason is itself asserted, not trusted.
  *
  * The one thing left to human judgement is the adjacency itself — which surface
  * a foreground legitimately sits on. A machine can't know that cyan-on-white is
@@ -118,26 +119,39 @@ export function parseTheme(css: string): ResolvedTheme {
 
   const lightValues: Record<string, string> = {};
   const darkValues: Record<string, string> = {};
-  for (const [declarationName, lightValue] of Object.entries(semanticTokens)) {
-    if (!declarationName.startsWith('color-')) continue;
+  // Union both blocks so a token defined ONLY in [data-theme='dark'] is not
+  // invisible to the completeness guard — its job is catching holes, and a
+  // dark-only token would otherwise be one.
+  const colorDeclarations = new Set(
+    [...Object.keys(semanticTokens), ...Object.keys(darkOverrides)].filter((name) =>
+      name.startsWith('color-')
+    )
+  );
+  for (const declarationName of colorDeclarations) {
     const tokenName = declarationName.slice('color-'.length);
-    const resolvedLight = resolveToHex(lightValue);
-    if (resolvedLight) lightValues[tokenName] = resolvedLight;
-    const resolvedDark = resolveToHex(darkOverrides[declarationName] ?? lightValue);
-    if (resolvedDark) darkValues[tokenName] = resolvedDark;
+    const lightValue = semanticTokens[declarationName];
+    if (lightValue !== undefined) {
+      const resolvedLight = resolveToHex(lightValue);
+      if (resolvedLight) lightValues[tokenName] = resolvedLight;
+    }
+    const darkValue = darkOverrides[declarationName] ?? semanticTokens[declarationName];
+    if (darkValue !== undefined) {
+      const resolvedDark = resolveToHex(darkValue);
+      if (resolvedDark) darkValues[tokenName] = resolvedDark;
+    }
   }
   return { light: lightValues, dark: darkValues };
 }
 
-/** Every semantic colour token defined by the theme (both modes share keys). */
+/** Every semantic colour token defined by the theme, in either mode. */
 export function colorTokens(theme: ResolvedTheme): string[] {
-  return Object.keys(theme.light);
+  return [...new Set([...Object.keys(theme.light), ...Object.keys(theme.dark)])].sort();
 }
 
 // ── The contract ────────────────────────────────────────────────────────────
 
-/** WCAG thresholds. LARGE and UI are both 3.0 but named for the reason they apply. */
-export const LEVEL = { AA: 4.5, LARGE: 3.0, UI: 3.0 } as const;
+/** WCAG thresholds in play. AA is small-text 1.4.3; UI is the 3.0 of 1.4.11. */
+export const LEVEL = { AA: 4.5, UI: 3.0 } as const;
 export type LevelName = keyof typeof LEVEL;
 
 export type Expectation =
@@ -196,6 +210,17 @@ export const PAIRS: Pair[] = [
   {
     foreground: 'text-secondary',
     background: 'surface-raised',
+    light: requireLevel('AA'),
+    dark: requireLevel('AA'),
+  },
+
+  // Ghost/link control labels use a NEUTRAL foreground, not the brand cyan:
+  // cyan-on-white (2.12) and cyan-on-subtle (2.02) both fail AA, and a label
+  // must be legible. Cyan stays reserved for hyperlink text and non-text accent
+  // (icon, border, hover fill). This pair verifies the ghost hover surface.
+  {
+    foreground: 'text-primary',
+    background: 'accent-subtle',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
@@ -303,14 +328,10 @@ export const PAIRS: Pair[] = [
  * that completeness is enforced by `findUnaccountedTokens`.
  */
 export const IGNORED: Record<string, string> = {
-  'surface-overlay':
-    'shares surface-raised’s value; dialog text is covered by the surface-raised pairs',
   'surface-sunken':
     'recessed fill; only ever seats text-primary, which clears contrast on it by a wide margin',
   'surface-hover': 'transient hover fill; the text on it is unchanged from its resting surface',
   'surface-muted': 'covered as a surface in the text-disabled pairs',
-  'accent-subtle':
-    'tinted background with no text token paired to it yet (add one when a component renders text on it)',
   'accent-solid-disabled': 'disabled fill; any label on it is text-disabled, which WCAG exempts',
   'danger-solid-disabled': 'disabled fill; any label on it is text-disabled, which WCAG exempts',
   'border-subtle':
@@ -318,6 +339,17 @@ export const IGNORED: Record<string, string> = {
   'border-default': 'field border; non-text contrast is verified at component level',
   'border-disabled': 'disabled field border; WCAG exempts disabled controls',
   'border-danger': 'invalid-field border; non-text contrast is verified at component level',
+};
+
+/**
+ * Tokens accounted for by "shares another token's value." That is a claim a
+ * comment cannot keep honest — it is true today and silently false the moment
+ * someone re-points either side — so it is asserted instead (`findBrokenSharedValueClaims`).
+ * `surface-overlay` (dialog) mirrors `surface-raised`, so the surface-raised
+ * pairs cover its text; the guard makes that mirroring a fact, not a hope.
+ */
+export const SHARED_VALUE: Record<string, string> = {
+  'surface-overlay': 'surface-raised',
 };
 
 // ── Checks ──────────────────────────────────────────────────────────────────
@@ -373,13 +405,23 @@ export function findViolations(theme: ResolvedTheme): Violation[] {
   return violations;
 }
 
+/** Every token the contract names, across PAIRS, IGNORED and SHARED_VALUE. */
+function accountedTokens(): Set<string> {
+  const accounted = new Set<string>([...Object.keys(IGNORED), ...Object.keys(SHARED_VALUE)]);
+  for (const [alias, target] of Object.entries(SHARED_VALUE)) {
+    accounted.add(alias);
+    accounted.add(target);
+  }
+  for (const pair of PAIRS) {
+    accounted.add(pair.foreground);
+    accounted.add(pair.background);
+  }
+  return accounted;
+}
+
 /** Colour tokens present in the theme but neither paired nor ignored. */
 export function findUnaccountedTokens(theme: ResolvedTheme): string[] {
-  const accountedFor = new Set<string>(Object.keys(IGNORED));
-  for (const pair of PAIRS) {
-    accountedFor.add(pair.foreground);
-    accountedFor.add(pair.background);
-  }
+  const accountedFor = accountedTokens();
   return colorTokens(theme)
     .filter((token) => !accountedFor.has(token))
     .sort();
@@ -388,10 +430,25 @@ export function findUnaccountedTokens(theme: ResolvedTheme): string[] {
 /** Contract entries that reference a token the theme no longer defines. */
 export function findStaleReferences(theme: ResolvedTheme): string[] {
   const definedTokens = new Set(colorTokens(theme));
-  const referencedTokens = new Set<string>(Object.keys(IGNORED));
-  for (const pair of PAIRS) {
-    referencedTokens.add(pair.foreground);
-    referencedTokens.add(pair.background);
+  return [...accountedTokens()].filter((token) => !definedTokens.has(token)).sort();
+}
+
+/**
+ * A `SHARED_VALUE` claim that no longer holds — the two tokens have diverged in
+ * at least one mode. Turns "shares surface-raised’s value" from a comment that
+ * rots into an assertion that fails.
+ */
+export function findBrokenSharedValueClaims(theme: ResolvedTheme): string[] {
+  const broken: string[] = [];
+  for (const [alias, target] of Object.entries(SHARED_VALUE)) {
+    for (const mode of ['light', 'dark'] as const) {
+      if (theme[mode][alias] !== theme[mode][target]) {
+        broken.push(
+          `${alias} claims to share ${target}, but they differ in ${mode} ` +
+            `(${theme[mode][alias] ?? 'undefined'} vs ${theme[mode][target] ?? 'undefined'})`
+        );
+      }
+    }
   }
-  return [...referencedTokens].filter((token) => !definedTokens.has(token)).sort();
+  return broken;
 }
