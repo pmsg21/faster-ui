@@ -19,11 +19,13 @@ noise.
 
 **Token layering.** Two layers; a component only ever sees the top one.
 
-- _Primitives_ — raw values, no meaning. Private. In `:root` (and the
-  `[data-theme='dark']` override) in `src/styles/index.css`. Never referenced by a
-  component.
+- _Primitives_ — raw values, no meaning. Private. In `:root` in
+  `src/styles/index.css`, and **immutable across modes** (a ramp is a fact). Never
+  referenced by a component.
 - _Semantic tokens_ — encode intent (`surface-base`, `text-danger`). The public
-  API. Declared in `@theme`.
+  API. Declared in `@theme`. **Dark mode re-points these** in the
+  `[data-theme='dark']` block — it overrides semantic tokens, never primitives (see
+  [docs/decisions.md](docs/decisions.md)).
 - A component needing a value with no semantic token → **add a semantic token**,
   don't reach past the layer. A hardcoded colour outside primitives (`bg-[#15C5CE]`,
   inline `style` colour) is a **build failure**. `src/index.ts` never exports
@@ -46,8 +48,15 @@ component can't know (usually the accessible name).
 **Conventions.**
 
 - Conventional Commits (commitlint-enforced) feed Changesets: `feat:` → minor,
-  `fix:` → patch. Subjects short and intent-focused (`build: scaffold design system
-tooling`) — no file-by-file bodies; the diff carries detail.
+  `fix:` → patch.
+- **Commit subjects are one short, intent-focused line** (`build: scaffold design
+system tooling`). **Default to no body at all.** Never narrate the diff
+  file-by-file — the diff carries the detail; add a body only for genuine _why_ the
+  diff can't show, and keep it to a sentence or two.
+- **No tool or AI attribution, anywhere.** No "Generated with Claude Code", no
+  `Co-Authored-By` trailer, no emoji credit — in commit messages _or_ PR
+  descriptions. This repo is a deliverable an interviewer reads; the authorship
+  must read as the engineer's.
 - Branch names match the commit type and describe the change: `fix/`, `feat/`,
   `chore/`, `build/`, `docs/`.
 - `cva` for variants; `cn()` / `twMerge` for class composition, so a consumer's
@@ -72,7 +81,10 @@ tooling`) — no file-by-file bodies; the diff carries detail.
 - `docs/patterns.md` — **after Button ships**, extracted from what we actually
   built so Input/Dialog have a real reference. Not written yet: we have intentions,
   not patterns.
-- `docs/tokens.md`, `docs/accessibility.md` — when there's real content.
+- [docs/tokens.md](docs/tokens.md) — the naming scheme, layer rules, and the
+  primitive→semantic map (light and dark).
+- [docs/accessibility.md](docs/accessibility.md) — the contrast record: the
+  dark-on-cyan decision, the accepted brand conflicts, and the CI contract.
 
 ## Current state
 
@@ -83,13 +95,18 @@ tooling`) — no file-by-file bodies; the diff carries detail.
   `NPM_TOKEN`) with a signed **provenance attestation**, and Storybook deploys to
   GitHub Pages. Artifacts and links are in
   [docs/release-verification.md](docs/release-verification.md).
-- **Next — the token layer.** Primitives + semantic `@theme` tokens in the
-  three-layer architecture, then `Button`, `Input`, `Dialog`. **The token values
-  are not in the repo yet** — they come from the maintainer at the start of the
-  next session, extracted from the Figma file (8 colour ramps × 8 steps with
-  primary cyan `#15C5CE` at 600, four double-shadow elevation levels, the H1→Caption
-  type scale in two weights, and the documented font stack). They are not to be
-  guessed or invented.
+- **Done — the token layer (merged via #8).** Primitives (8 ramps ×
+  8 + black/white, the type scale, the four elevation shadows) in `:root`; semantic
+  `@theme` tokens for the intents Button/Input/Dialog consume (neutral, `accent`,
+  danger); dark mode as a semantic re-map. `warning`/`success`/`info`/`auxiliary` are
+  primitives-only until a component needs them. Accessibility is enforced by an
+  automated **contrast contract** (`src/styles/contrast-contract.ts`) that fails CI on
+  a contrast regression _or_ an undeclared token — both proven by provoked failures.
+  The primary button ships **dark text on cyan** (white fails AA at every ramp step);
+  full record in [docs/accessibility.md](docs/accessibility.md).
+- **Next — `Button`, `Input`, `Dialog`,** consuming semantic tokens only. When the
+  first component imports the stylesheet, restore the `./styles.css` export (see the
+  `vite.config.ts` TODO) and add the hardcoded-colour lint gate.
 
 ## Known gaps / state to remember
 
@@ -97,11 +114,30 @@ tooling`) — no file-by-file bodies; the diff carries detail.
   (`index.cy.tsx`) smoke specs assert that and fail deliberately when the first
   real export lands.
 - `collectCoverageFrom` excludes `*.cy.tsx`; the `coverageThreshold` (branches 80,
-  functions/lines/statements 85) hasn't bitten only because there's no source to
-  count — it enforces the moment component code lands.
+  functions/lines/statements 85) is now **live** — `contrast-contract.ts` is the first
+  counted source (96/89/100/100). `index.ts` is excluded, so it stays empty-safe.
 - `./styles.css` export removed until the build emits CSS — restore when the first
   component imports the stylesheet (TODO in `vite.config.ts`).
 - CI caches the Cypress binary at `~/.cache/Cypress` and runs `cypress install`
   explicitly, because a warm pnpm cache skips the postinstall that downloads it.
 - Cypress 13 warns React 19 / Vite 6 aren't officially supported (works; a Cypress
   15 bump clears it) — deferred.
+
+### Obligations the token layer hands to the component sessions
+
+These are accessibility decisions the contrast contract records but a _token_ can't
+enforce — they land when the component is built. Full detail in
+[docs/accessibility.md](docs/accessibility.md).
+
+- **Dark-mode elevation is a border, not a shadow.** In dark, `surface-base/raised/
+overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is imperceptible
+  (`elevation-4` ≈ 1.05:1). **Dialog/popover must carry a visible border in dark** —
+  nothing else separates an elevated surface from the page.
+- **Focus-ring visibility (Input).** The brand cyan ring is below SC 1.4.11 on white
+  (≤2.12:1). Input completes focus with a neutral offset/halo, not the cyan alone.
+- **Non-text border contrast (Input).** `border-subtle`/`border-default`/`border-danger`
+  are below 3:1 on white; the field must be identifiable by more than its border (label,
+  fill, focus), verified in the component's own tests.
+- **Ghost/link button labels use a neutral foreground**, not `text-accent` — cyan fails
+  AA on white (2.12) and on `accent-subtle` (2.02). Cyan is for links and non-text accent.
+  Revisit with the component in front of us when Button is built.

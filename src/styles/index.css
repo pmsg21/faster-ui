@@ -6,29 +6,278 @@
 /**
  * ── TOKEN LAYERS ─────────────────────────────────────────────────────────
  *
- * Layer 1 — PRIMITIVES live in :root below. Raw values, no meaning.
- *           Components must NEVER reference these directly.
+ * Layer 1 — PRIMITIVES live in :root below. Raw values, no meaning
+ *           (`--neutral-700`, `--primary-600`). They are IMMUTABLE across
+ *           modes: a ramp is a fact, `--neutral-50` is always the lightest
+ *           neutral. Crucially they live in :root, NOT @theme — so Tailwind
+ *           generates no `bg-neutral-50` utility and a component *cannot*
+ *           reach a primitive even by accident. The layer boundary is
+ *           enforced by the absence of a utility, not by convention alone.
  *
  * Layer 2 — SEMANTIC tokens are declared in @theme. They encode intent
- *           and are the public API of the design system.
+ *           (`surface-base`, `accent-solid`) and are the public token API —
+ *           the only colours a component ever names.
  *
- * Why the split, and why @theme is NOT `@theme inline`:
- * `@theme inline` bakes the value into the utility at build time, which
- * silently breaks runtime theming — bg-surface-base would be frozen at its
- * light value even after [data-theme='dark'] is applied. Non-inline @theme
- * keeps the var() indirection, so a mode switch is one attribute change.
+ * DARK MODE is a re-mapping, not a re-palette. Primitives never change;
+ * [data-theme='dark'] re-points the SEMANTIC tokens at different existing
+ * ramp steps. That is the whole reason @theme is plain, never `@theme inline`:
+ * inline bakes each token's value into the utility at build time, freezing
+ * `bg-surface-base` at its light value; plain @theme keeps the var()
+ * indirection, so a mode is one attribute flip and a third mode (high-contrast,
+ * a regional brand) would be one more column of mappings, not a second palette.
+ * This is the model Figma Variables uses.
  *
- * Populate the blocks below from the Figma token source.
+ * Only COLOUR is two-layered — colour is what flips by mode and what carries
+ * the accessibility decisions (see docs/accessibility.md). Type and elevation
+ * have intrinsic intent and no mode variance, so they are mapped once.
+ *
+ * Values are transcribed from the TapTap Figma file (Color 4:944, Shadow
+ * 4:1373, Typography 4:1418) exactly — including non-monotonic ramp steps
+ * (Danger 500 is lighter than 600; Warning 700 is not darker than 600). Where
+ * a value causes a contrast problem it is flagged in docs/accessibility.md and
+ * fixed in the SEMANTIC mapping, never by editing a primitive.
  */
 
 :root {
-  /* Layer 1 — primitives */
-}
+  /* ── Layer 1 · colour primitives — 8 ramps × 8 steps + black/white ──────── */
 
-[data-theme='dark'] {
-  /* Layer 1 — dark overrides */
+  /* Neutral */
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #eeeeee;
+  --neutral-300: #e1e1e1;
+  --neutral-400: #cacaca;
+  --neutral-500: #8e8e8e;
+  --neutral-600: #4b4b4b;
+  --neutral-700: #1f1f1f;
+
+  /* Primary — brand cyan, #15C5CE at 600 */
+  --primary-50: #f9ffff;
+  --primary-100: #eefcfc;
+  --primary-200: #dff7f7;
+  --primary-300: #b0ebec;
+  --primary-400: #7ddde1;
+  --primary-500: #47cfd6;
+  --primary-600: #15c5ce;
+  --primary-700: #00abb6;
+
+  /* Auxiliary — recorded, no semantic mapping yet (see docs/decisions.md) */
+  --auxiliary-50: #fffcfc;
+  --auxiliary-100: #fff6f3;
+  --auxiliary-200: #fff2ee;
+  --auxiliary-300: #ffe1d6;
+  --auxiliary-400: #ffc8b6;
+  --auxiliary-500: #ffa487;
+  --auxiliary-600: #ff8156;
+  --auxiliary-700: #fe632f;
+
+  /* Danger */
+  --danger-50: #fffbfb;
+  --danger-100: #fef2f2;
+  --danger-200: #ffebee;
+  --danger-300: #ffccd2;
+  --danger-400: #f49898;
+  --danger-500: #eb6f70; /* non-monotonic: lighter than 600 (source, verbatim) */
+  --danger-600: #f64c4c;
+  --danger-700: #ec2d30;
+
+  /* Warning — recorded, no semantic mapping yet (see docs/decisions.md) */
+  --warning-50: #fffdfa;
+  --warning-100: #fff9ee;
+  --warning-200: #fff7e1;
+  --warning-300: #ffeab3;
+  --warning-400: #ffdd82;
+  --warning-500: #ffc62b;
+  --warning-600: #ffad0d;
+  --warning-700: #fe9b0e; /* non-monotonic: not darker than 600 (source, verbatim) */
+
+  /* Success — recorded, no semantic mapping yet (see docs/decisions.md) */
+  --success-50: #fbfefc;
+  --success-100: #f2faf6;
+  --success-200: #e5f5ec;
+  --success-300: #c0e5d1;
+  --success-400: #97d4b4;
+  --success-500: #6bc497;
+  --success-600: #47b881;
+  --success-700: #0c9d61;
+
+  /* Info — recorded, no semantic mapping yet (see docs/decisions.md) */
+  --info-50: #f8fcff;
+  --info-100: #f1f8ff;
+  --info-200: #e4f2ff;
+  --info-300: #bdddff;
+  --info-400: #93c8ff;
+  --info-500: #4ba1ff;
+  --info-600: #3b82f6;
+  --info-700: #3a70e2;
+
+  --white: #ffffff;
+  --black: #000000;
+
+  /* ── Layer 1 · type primitives — size / line-height / weight ─────────────
+   * Sizes in rem (÷16) so the scale honours the user's root font-size — an
+   * accessibility gain over the px the Figma file specifies; the px source is
+   * recorded per step. Line-heights in rem match Figma exactly at a 16px root.
+   * Letter-spacing is 0 throughout, so no primitive is needed for it. */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', SimSun, sans-serif;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+
+  --font-size-30: 1.875rem; /* 30px */
+  --font-size-24: 1.5rem; /* 24px */
+  --font-size-20: 1.25rem; /* 20px */
+  --font-size-18: 1.125rem; /* 18px */
+  --font-size-16: 1rem; /* 16px */
+  --font-size-14: 0.875rem; /* 14px */
+  --font-size-12: 0.75rem; /* 12px */
+
+  --line-height-38: 2.375rem; /* 38px */
+  --line-height-32: 2rem; /* 32px */
+  --line-height-28: 1.75rem; /* 28px */
+  --line-height-26: 1.625rem; /* 26px */
+  --line-height-24: 1.5rem; /* 24px */
+  --line-height-22: 1.375rem; /* 22px */
+  --line-height-18: 1.125rem; /* 18px */
+
+  /* ── Layer 1 · elevation primitives — every level is a double shadow ──────
+   * 8-digit hex keeps the alpha exactly as Figma specifies (no rounding). */
+  --elevation-1: 0 2px 4px #0000000a, 0 1px 1px #00000005;
+  --elevation-2: 0 4px 10px #00000014, 0 1px 4px #0000000a;
+  --elevation-3: 0 8px 32px #00000014, 0 2px 20px #0000000a;
+  --elevation-4: 0 24px 60px #0000001f, 0 8px 20px #0000000f;
 }
 
 @theme {
-  /* Layer 2 — semantic tokens mapped to the primitives above */
+  /* ── Layer 2 · semantic colour — the public token API ────────────────────
+   * Only intents actually consumed by Button / Input / Dialog exist here:
+   * neutral, primary (accent), danger. warning / success / info / auxiliary
+   * stay primitives-only until a component needs them (docs/decisions.md). */
+
+  /* Surfaces (backgrounds) */
+  --color-surface-base: var(--neutral-50); /* app background */
+  --color-surface-raised: var(--white); /* card, default input field */
+  --color-surface-overlay: var(--white); /* dialog, popover */
+  --color-surface-sunken: var(--neutral-100); /* recessed well */
+  --color-surface-muted: var(--neutral-200); /* disabled control fill */
+  --color-surface-hover: var(--neutral-100); /* ghost/row hover */
+
+  /* Text / foreground */
+  --color-text-primary: var(--neutral-700); /* body, headings */
+  --color-text-secondary: var(--neutral-600); /* source implied 500 (3.28:1); remapped for AA */
+  --color-text-disabled: var(--neutral-400); /* WCAG-exempt */
+  --color-text-on-accent: var(
+    --neutral-700
+  ); /* source shows white (fails at every step); dark ships */
+  --color-text-accent: var(--primary-600); /* ghost/link button text — brand conflict, see a11y */
+  --color-text-danger: var(--danger-700); /* error text — brand conflict, see a11y */
+
+  /* Borders */
+  --color-border-subtle: var(--neutral-300); /* default field border, dividers */
+  --color-border-default: var(--neutral-400); /* stronger/hover field border */
+  --color-border-disabled: var(--neutral-200);
+  --color-border-focus: var(--primary-600); /* focus outline colour */
+  --color-border-danger: var(--danger-600); /* invalid field border */
+
+  /* Accent (Primary) — Button primary: 600 / 500 hover / 700 active / 300 disabled */
+  --color-accent-solid: var(--primary-600);
+  --color-accent-solid-hover: var(--primary-500); /* hover lightens (source) */
+  --color-accent-solid-active: var(--primary-700); /* active darkens (source) */
+  --color-accent-solid-disabled: var(--primary-300);
+  --color-accent-subtle: var(--primary-100); /* tinted background */
+
+  /* Danger (full states — Danger is a real Button variant) */
+  --color-danger-solid: var(--danger-600);
+  --color-danger-solid-hover: var(--danger-500);
+  --color-danger-solid-active: var(--danger-700);
+  --color-danger-solid-disabled: var(--danger-300);
+  --color-danger-subtle: var(--danger-100);
+
+  /* Focus ring (Input focus 500/600) — brand conflict vs SC 1.4.11, see a11y */
+  --color-ring-focus: var(--primary-500);
+
+  /* ── Layer 2 · typography — size + line-height, headings carry weight ─────
+   * H1–Title are Medium (500) in the source, so weight is baked. Subtitle /
+   * Body / Caption ship in both weights, so they stay weight-neutral and the
+   * consumer applies font-regular / font-medium. */
+  --font-sans: var(--font-family-sans);
+
+  --text-h1: var(--font-size-30);
+  --text-h1--line-height: var(--line-height-38);
+  --text-h1--font-weight: var(--font-weight-medium);
+
+  --text-h2: var(--font-size-24);
+  --text-h2--line-height: var(--line-height-32);
+  --text-h2--font-weight: var(--font-weight-medium);
+
+  --text-h3: var(--font-size-20); /* verified from Figma node 4:1507 (20/28) */
+  --text-h3--line-height: var(--line-height-28);
+  --text-h3--font-weight: var(--font-weight-medium);
+
+  --text-title: var(--font-size-18);
+  --text-title--line-height: var(--line-height-26);
+  --text-title--font-weight: var(--font-weight-medium);
+
+  --text-subtitle: var(--font-size-16);
+  --text-subtitle--line-height: var(--line-height-24);
+
+  --text-body: var(--font-size-14);
+  --text-body--line-height: var(--line-height-22);
+
+  --text-caption: var(--font-size-12);
+  --text-caption--line-height: var(--line-height-18);
+
+  /* ── Layer 2 · elevation ─────────────────────────────────────────────── */
+  --shadow-elevation-1: var(--elevation-1);
+  --shadow-elevation-2: var(--elevation-2);
+  --shadow-elevation-3: var(--elevation-3);
+  --shadow-elevation-4: var(--elevation-4);
+}
+
+/**
+ * ── DARK MODE ────────────────────────────────────────────────────────────
+ * Re-points the SEMANTIC colour tokens at different existing primitives.
+ * No new hex, no primitive override. Brand fills (accent-*, danger-*) and the
+ * dark-on-accent label are mode-independent — cyan is cyan — so they are not
+ * repeated here; only surfaces, text and borders flip.
+ *
+ * NOTE (source limitation): the neutral ramp's dark end is shallow — between
+ * #1F1F1F (700) and #4B4B4B (600) there is no intermediate step — so base,
+ * raised and overlay all resolve to #1F1F1F. And the elevation shadows are
+ * black at 6–12% alpha, which over #1F1F1F is imperceptible (elevation-4
+ * measures ~1.05:1 against the surface). So in dark an elevated surface is
+ * separated by a VISIBLE BORDER, not tint or shadow — the border is
+ * load-bearing, an obligation on Dialog/popover recorded in CLAUDE.md and
+ * docs/accessibility.md. Not "fixed" by inventing a grey the source lacks.
+ */
+[data-theme='dark'] {
+  /* base/raised/overlay all resolve to #1F1F1F (see the note above): elevation
+   * is carried by a visible border in dark, since neither tint nor shadow
+   * separates these layers. */
+  --color-surface-base: var(--neutral-700);
+  --color-surface-raised: var(--neutral-700);
+  --color-surface-overlay: var(--neutral-700);
+  --color-surface-sunken: var(--black); /* deepest recess */
+  --color-surface-muted: var(--neutral-600); /* disabled fill (text-disabled is exempt) */
+  --color-surface-hover: var(--neutral-600); /* transient hover — carries no required text */
+
+  --color-text-primary: var(--neutral-50);
+  --color-text-secondary: var(--neutral-300);
+  --color-text-disabled: var(--neutral-500);
+  --color-text-accent: var(--primary-400); /* brighter cyan reads on dark (and passes AA) */
+  --color-text-danger: var(--danger-300); /* lighter red seats on both the surface and the wash */
+
+  /* The ramp has no dark chromatic tint, so the subtle brand surfaces degrade
+   * to a neutral hover wash in dark; a ghost control's brand identity is then
+   * carried by its text/border, not its fill. A documented palette limitation,
+   * flagged in docs/accessibility.md — not a value invented to fill the gap. */
+  --color-accent-subtle: var(--neutral-600);
+  --color-danger-subtle: var(--neutral-600);
+
+  --color-border-subtle: var(--neutral-600);
+  --color-border-default: var(--neutral-500);
+  --color-border-disabled: var(--neutral-600);
+  --color-border-focus: var(--primary-500);
+  --color-border-danger: var(--danger-500);
 }
