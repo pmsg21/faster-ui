@@ -56,3 +56,25 @@ not block a developer. Typecheck plus unit tests catch type and behaviour
 regressions in a fraction of the time, keeping the push gate fast. The earlier
 gates stay lighter still: `pre-commit` runs lint-staged, and `commit-msg` runs
 commitlint.
+
+## The Version Packages PR keeps a manual approval, deliberately
+
+When a changeset lands on `main`, the Changesets action opens a "Version Packages"
+PR authored by the `github-actions` bot. GitHub gates workflow runs on
+bot-authored PRs behind a maintainer's "Approve and run", so that PR's required
+checks do not start until a human approves them. We keep this step rather than
+removing it.
+
+The alternative is to author the PR with a GitHub App or a personal access token
+so it runs as a trusted identity and CI triggers automatically. That was declined:
+it trades one click per release for a standing identity holding permissions in the
+repository. For a design system that releases perhaps once a sprint, a token's
+permanent presence outweighs the friction it removes. The gate is also more than
+friction — it is a second human checkpoint immediately before a version reaches
+every consuming team, which in a system with distributed consumers is a feature,
+not an obstacle.
+
+The decision is orthogonal to how the package is published. The npm publish uses
+OIDC trusted publishing and carries no `NPM_TOKEN`, and that holds whether the
+Version Packages PR is approved by a human or created by a bot identity. Choosing
+the manual gate does not weaken the token-free publish path.
