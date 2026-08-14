@@ -48,8 +48,15 @@ component can't know (usually the accessible name).
 **Conventions.**
 
 - Conventional Commits (commitlint-enforced) feed Changesets: `feat:` → minor,
-  `fix:` → patch. Subjects short and intent-focused (`build: scaffold design system
-tooling`) — no file-by-file bodies; the diff carries detail.
+  `fix:` → patch.
+- **Commit subjects are one short, intent-focused line** (`build: scaffold design
+system tooling`). **Default to no body at all.** Never narrate the diff
+  file-by-file — the diff carries the detail; add a body only for genuine _why_ the
+  diff can't show, and keep it to a sentence or two.
+- **No tool or AI attribution, anywhere.** No "Generated with Claude Code", no
+  `Co-Authored-By` trailer, no emoji credit — in commit messages _or_ PR
+  descriptions. This repo is a deliverable an interviewer reads; the authorship
+  must read as the engineer's.
 - Branch names match the commit type and describe the change: `fix/`, `feat/`,
   `chore/`, `build/`, `docs/`.
 - `cva` for variants; `cn()` / `twMerge` for class composition, so a consumer's
@@ -88,7 +95,7 @@ tooling`) — no file-by-file bodies; the diff carries detail.
   `NPM_TOKEN`) with a signed **provenance attestation**, and Storybook deploys to
   GitHub Pages. Artifacts and links are in
   [docs/release-verification.md](docs/release-verification.md).
-- **Done — the token layer (on `feat/tokens`, PR pending).** Primitives (8 ramps ×
+- **Done — the token layer (merged via #8).** Primitives (8 ramps ×
   8 + black/white, the type scale, the four elevation shadows) in `:root`; semantic
   `@theme` tokens for the intents Button/Input/Dialog consume (neutral, `accent`,
   danger); dark mode as a semantic re-map. `warning`/`success`/`info`/`auxiliary` are
@@ -133,3 +140,4 @@ overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is impercept
   fill, focus), verified in the component's own tests.
 - **Ghost/link button labels use a neutral foreground**, not `text-accent` — cyan fails
   AA on white (2.12) and on `accent-subtle` (2.02). Cyan is for links and non-text accent.
+  Revisit with the component in front of us when Button is built.
