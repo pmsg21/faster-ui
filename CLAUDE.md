@@ -76,22 +76,29 @@ tooling`) — no file-by-file bodies; the diff carries detail.
 
 ## Current state
 
-- **Done**: tooling scaffold on `main`; all five gates green (format, lint,
-  two-program typecheck, Jest + coverage, build), each proven by a provoked
-  failure; three husky hooks proven; CI/Release workflows live.
-- **Open**: PR #1 (`fix/ci-node-version`) — Node pinned to 22.22.3, npm CLI
-  pinned, dangling `./styles.css` export removed, Jest + Cypress smoke gates made
-  real and green.
-- **Next**: the token layer (primitives + semantic `@theme` tokens from the Figma
-  source), then `Button`, `Input`, `Dialog`.
+- **Done — scaffold and CI/CD complete on `main`.** All five gates green (format,
+  lint, two-program typecheck, Jest + coverage, build) and proven by provoked
+  failures; three husky hooks proven. The release pipeline is proven end to end:
+  `@pmsg21/faster-ui@0.0.1` is published to npm via **OIDC trusted publishing** (no
+  `NPM_TOKEN`) with a signed **provenance attestation**, and Storybook deploys to
+  GitHub Pages. Artifacts and links are in
+  [docs/release-verification.md](docs/release-verification.md).
+- **Next — the token layer.** Primitives + semantic `@theme` tokens in the
+  three-layer architecture, then `Button`, `Input`, `Dialog`. **The token values
+  are not in the repo yet** — they come from the maintainer at the start of the
+  next session, extracted from the Figma file (8 colour ramps × 8 steps with
+  primary cyan `#15C5CE` at 600, four double-shadow elevation levels, the H1→Caption
+  type scale in two weights, and the documented font stack). They are not to be
+  guessed or invented.
 
 ## Known gaps / state to remember
 
 - `src/index.ts` is empty `export {}`; the Jest (`index.test.ts`) and Cypress
   (`index.cy.tsx`) smoke specs assert that and fail deliberately when the first
   real export lands.
-- `collectCoverageFrom` excludes `*.cy.tsx`; coverage is empty until source lands,
-  then the 85% threshold enforces.
+- `collectCoverageFrom` excludes `*.cy.tsx`; the `coverageThreshold` (branches 80,
+  functions/lines/statements 85) hasn't bitten only because there's no source to
+  count — it enforces the moment component code lands.
 - `./styles.css` export removed until the build emits CSS — restore when the first
   component imports the stylesheet (TODO in `vite.config.ts`).
 - CI caches the Cypress binary at `~/.cache/Cypress` and runs `cypress install`
