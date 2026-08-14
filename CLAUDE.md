@@ -19,11 +19,13 @@ noise.
 
 **Token layering.** Two layers; a component only ever sees the top one.
 
-- _Primitives_ — raw values, no meaning. Private. In `:root` (and the
-  `[data-theme='dark']` override) in `src/styles/index.css`. Never referenced by a
-  component.
+- _Primitives_ — raw values, no meaning. Private. In `:root` in
+  `src/styles/index.css`, and **immutable across modes** (a ramp is a fact). Never
+  referenced by a component.
 - _Semantic tokens_ — encode intent (`surface-base`, `text-danger`). The public
-  API. Declared in `@theme`.
+  API. Declared in `@theme`. **Dark mode re-points these** in the
+  `[data-theme='dark']` block — it overrides semantic tokens, never primitives (see
+  [docs/decisions.md](docs/decisions.md)).
 - A component needing a value with no semantic token → **add a semantic token**,
   don't reach past the layer. A hardcoded colour outside primitives (`bg-[#15C5CE]`,
   inline `style` colour) is a **build failure**. `src/index.ts` never exports
@@ -72,7 +74,10 @@ tooling`) — no file-by-file bodies; the diff carries detail.
 - `docs/patterns.md` — **after Button ships**, extracted from what we actually
   built so Input/Dialog have a real reference. Not written yet: we have intentions,
   not patterns.
-- `docs/tokens.md`, `docs/accessibility.md` — when there's real content.
+- [docs/tokens.md](docs/tokens.md) — the naming scheme, layer rules, and the
+  primitive→semantic map (light and dark).
+- [docs/accessibility.md](docs/accessibility.md) — the contrast record: the
+  dark-on-cyan decision, the accepted brand conflicts, and the CI contract.
 
 ## Current state
 
@@ -83,13 +88,18 @@ tooling`) — no file-by-file bodies; the diff carries detail.
   `NPM_TOKEN`) with a signed **provenance attestation**, and Storybook deploys to
   GitHub Pages. Artifacts and links are in
   [docs/release-verification.md](docs/release-verification.md).
-- **Next — the token layer.** Primitives + semantic `@theme` tokens in the
-  three-layer architecture, then `Button`, `Input`, `Dialog`. **The token values
-  are not in the repo yet** — they come from the maintainer at the start of the
-  next session, extracted from the Figma file (8 colour ramps × 8 steps with
-  primary cyan `#15C5CE` at 600, four double-shadow elevation levels, the H1→Caption
-  type scale in two weights, and the documented font stack). They are not to be
-  guessed or invented.
+- **Done — the token layer (on `feat/tokens`, PR pending).** Primitives (8 ramps ×
+  8 + black/white, the type scale, the four elevation shadows) in `:root`; semantic
+  `@theme` tokens for the intents Button/Input/Dialog consume (neutral, `accent`,
+  danger); dark mode as a semantic re-map. `warning`/`success`/`info`/`auxiliary` are
+  primitives-only until a component needs them. Accessibility is enforced by an
+  automated **contrast contract** (`src/styles/contrast-contract.ts`) that fails CI on
+  a contrast regression _or_ an undeclared token — both proven by provoked failures.
+  The primary button ships **dark text on cyan** (white fails AA at every ramp step);
+  full record in [docs/accessibility.md](docs/accessibility.md).
+- **Next — `Button`, `Input`, `Dialog`,** consuming semantic tokens only. When the
+  first component imports the stylesheet, restore the `./styles.css` export (see the
+  `vite.config.ts` TODO) and add the hardcoded-colour lint gate.
 
 ## Known gaps / state to remember
 
@@ -97,8 +107,8 @@ tooling`) — no file-by-file bodies; the diff carries detail.
   (`index.cy.tsx`) smoke specs assert that and fail deliberately when the first
   real export lands.
 - `collectCoverageFrom` excludes `*.cy.tsx`; the `coverageThreshold` (branches 80,
-  functions/lines/statements 85) hasn't bitten only because there's no source to
-  count — it enforces the moment component code lands.
+  functions/lines/statements 85) is now **live** — `contrast-contract.ts` is the first
+  counted source (96/95/100/100). `index.ts` is excluded, so it stays empty-safe.
 - `./styles.css` export removed until the build emits CSS — restore when the first
   component imports the stylesheet (TODO in `vite.config.ts`).
 - CI caches the Cypress binary at `~/.cache/Cypress` and runs `cypress install`
