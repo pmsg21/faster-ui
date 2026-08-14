@@ -29,10 +29,13 @@ npm records the publisher as GitHub Actions via a trusted publisher, not a token
 }
 ```
 
-The Release run log confirms the path: `No NPM_TOKEN found, but OIDC is available
+The Release run log confirms the path:
 
-- using npm trusted publishing`→`packages published successfully`→`New tag:
-  v0.0.1`.
+```text
+No NPM_TOKEN found, but OIDC is available - using npm trusted publishing
+success packages published successfully
+New tag: v0.0.1
+```
 
 ## Provenance attestation
 
