@@ -24,6 +24,12 @@ export default defineConfig({
       // Bundling it is how a component library ships two Reacts into a consumer's app.
       external: ['react', 'react-dom', 'react/jsx-runtime'],
       output: {
+        // TODO(styles.css export): nothing imports the stylesheet while
+        // src/index.ts is empty, so the build emits no CSS and the
+        // "./styles.css" package.json export was removed to avoid a dangling
+        // subpath. When the first component imports ./styles/index.css and
+        // dist/styles.css is actually emitted, restore that export and verify
+        // the emitted asset name matches (Vite may name it index.css).
         assetFileNames: (asset) => (asset.name === 'style.css' ? 'styles.css' : asset.name!),
       },
     },
