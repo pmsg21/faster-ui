@@ -1,8 +1,8 @@
 import * as api from './index';
 
-// Cypress smoke spec — the component-test twin of src/index.test.ts. It keeps the
-// "Cypress component tests" gate honest while there are no components, and turns
-// into a real guard the moment the first component ships its own .cy.tsx spec.
+// The Cypress twin of src/index.test.ts. It keeps the "Cypress component tests"
+// gate honest about the package's entry point, which is the one thing every
+// consumer touches regardless of which component they use.
 describe('public entry point (smoke)', () => {
   it('imports without throwing', () => {
     // A function-call assertion (not `.to.exist`, a bare-property getter that
@@ -10,7 +10,7 @@ describe('public entry point (smoke)', () => {
     expect(api).to.not.equal(undefined);
   });
 
-  it('exports nothing yet', () => {
-    expect(Object.keys(api)).to.have.length(0);
+  it('exports exactly the documented public surface', () => {
+    expect(Object.keys(api).sort()).to.deep.equal(['Button']);
   });
 });

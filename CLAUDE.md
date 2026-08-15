@@ -41,6 +41,28 @@ values at build time and freezes `bg-surface-base` at its light value under
 a `Playground` with full controls, ≥1 edge case (long label/content). Tests:
 rendering, variants, interaction, keyboard, and an axe assertion.
 
+**Assert the before-state, not only the after.** Every interaction test pins the
+spy _before_ it acts, and again after **each** step:
+
+```ts
+expect(onClick).toHaveBeenCalledTimes(0);
+await user.click(button);
+expect(onClick).toHaveBeenCalledTimes(1);
+```
+
+A test that only checks the end state passes identically when the interaction
+never happened — wrong selector, element not rendered, handler never wired. That
+failure mode is invisible precisely on the tests that matter most: a
+`not.toHaveBeenCalled()` assertion is _already_ true before the test does
+anything. Same reason a multi-key sequence asserts after every key rather than
+once at the end — otherwise a green run cannot tell you which key was handled.
+
+**`userEvent.setup()` must not be called at module scope.** It binds when called,
+and at import time the test environment is not fully established, so it can bind
+to a `document` that is later replaced. Inside `beforeEach` or inside each test
+are both fine — every call returns an independent instance. Prefer per-test where
+it keeps the case readable on its own; these tests double as documentation.
+
 **Accessibility is the component's job.** Focus, semantics, ARIA, keyboard — built
 in, not deferred to docs or the consumer. The consumer supplies only what the
 component can't know (usually the accessible name).
