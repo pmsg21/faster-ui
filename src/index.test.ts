@@ -12,6 +12,6 @@ describe('public entry point', () => {
   });
 
   it('exports exactly the documented public surface', () => {
-    expect(Object.keys(api).sort()).toEqual(['Button']);
+    expect(Object.keys(api).sort()).toEqual(['Button', 'IconButton']);
   });
 });

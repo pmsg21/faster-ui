@@ -85,6 +85,11 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - `cva` for variants; `cn()` / `twMerge` for class composition, so a consumer's
   `className` wins. `forwardRef` on anything rendering a DOM element. Props named
   for intent (`variant="danger"`), never appearance (`variant="red"`).
+- **Identifiers say what the value is _for_.** No single letters, no abbreviations
+  that need the surrounding line to decode — `registerNumber`, not `n`;
+  `foregroundLuminance`, not `fl`. This applies to props, locals, callback
+  parameters and test fixtures alike. A name is the one piece of documentation
+  that cannot go stale, and every reader after the author pays for a short one.
 - **Type imports are their own statement, never inline.** `import type { X } from
 'y'` on its own line — not `import { type X, y } from 'y'`. A reader scanning
   the head of a file can then tell what is erased at compile time from what is

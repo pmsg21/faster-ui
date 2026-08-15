@@ -11,6 +11,6 @@ describe('public entry point (smoke)', () => {
   });
 
   it('exports exactly the documented public surface', () => {
-    expect(Object.keys(api).sort()).to.deep.equal(['Button']);
+    expect(Object.keys(api).sort()).to.deep.equal(['Button', 'IconButton']);
   });
 });
