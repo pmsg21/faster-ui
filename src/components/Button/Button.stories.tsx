@@ -369,8 +369,12 @@ export const Disabled: Story = {
         story:
           'Renders `aria-disabled`, **not** the native `disabled` attribute. The native one ' +
           'removes the control from the tab order, so a keyboard or screen-reader user never ' +
-          'discovers it exists or why it is unavailable. Tab to it and try Enter: it is ' +
-          'reachable, announced as disabled, and inert.',
+          'discovers it exists or why it is unavailable.\n\n' +
+          '**Check it in ten seconds:** tab to it — it takes focus — then click it, and press ' +
+          'Enter and Space. The **Actions** panel stays empty. That emptiness is the ' +
+          'guarantee: the control is reachable and announced, and activation is suppressed. ' +
+          'A disabled button that still fires its handler looks identical to one that does ' +
+          'not, so this is the only way to see the difference without reading a test.',
       },
     },
   },
@@ -385,7 +389,10 @@ export const Loading: Story = {
           'Sets `aria-busy`, swaps the leading icon for a spinner, and blocks activation. The ' +
           'spinner is hidden from assistive technology and paired with a visually hidden text ' +
           'alternative. The animation is wrapped in `motion-safe`, so it does not spin for a ' +
-          'reader who has asked for reduced motion.',
+          'reader who has asked for reduced motion.\n\n' +
+          '**Check it in ten seconds:** click it, and press Enter and Space. The **Actions** ' +
+          'panel stays empty — a request in flight cannot be fired twice by an impatient ' +
+          'second click.',
       },
     },
   },

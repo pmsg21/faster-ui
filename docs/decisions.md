@@ -14,6 +14,24 @@ transitive version shifts. Publishing runs through the npm CLI because OIDC
 trusted publishing and provenance are reliable there. The release workflow
 therefore installs with pnpm and publishes with npm.
 
+**The argument has now demonstrated itself three times in this repository**, which
+is worth recording as a count rather than as three separate footnotes — the point
+is the rate, not any single instance.
+
+| Package            | Reached us as                        | What broke without the declaration                                                |
+| ------------------ | ------------------------------------ | --------------------------------------------------------------------------------- |
+| `@storybook/react` | transitive of the Storybook scaffold | the framework import in `.storybook`                                              |
+| `axe-core`         | **peer** of `cypress-axe`            | `cy.injectAxe()` — every browser a11y assertion was erroring rather than checking |
+| `@storybook/test`  | transitive of `addon-interactions`   | `fn()` in a story file                                                            |
+
+Each would have "worked" under npm's flat hoisting and surfaced later — for a
+library, in a consumer's install, where the cost is someone else's broken build.
+`axe-core` is the sharpest of the three: it did not fail loudly, it failed as a
+gate that stopped checking. Note also the version pins that follow from this:
+`axe-core` matches what `jest-axe` resolves and `@storybook/test` matches what
+`addon-interactions` resolves, so each pair shares one instance rather than
+installing two that disagree.
+
 ## Design tokens: `@theme`, not `@theme inline`
 
 Tokens are defined in Tailwind v4's `@theme` block in `src/styles/index.css`.

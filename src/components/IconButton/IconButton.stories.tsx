@@ -90,7 +90,11 @@ export const DesignFidelity: Story = {
       },
     },
   },
-  render: (args) => (
+  // The spy is dropped here on purpose. This story is a rendering comparison, and an
+  // Actions panel filling up while someone clicks between the two halves invites the
+  // question "did I just change something?" — which is the opposite of what it is for.
+  // Button's equivalent never inherited it, because that one ignores args entirely.
+  render: ({ onClick: _spy, ...args }) => (
     <div className="grid max-w-3xl gap-5">
       <div className="border-line-subtle grid gap-3 border-b pb-5">
         <div className="text-body text-content-primary font-medium">
@@ -184,7 +188,9 @@ export const Disabled: Story = {
       description: {
         story:
           'Renders `aria-disabled`, not the native attribute — inherited from `Button`, so it ' +
-          'cannot drift between the two components. Tab to it: reachable, announced, inert.',
+          'cannot drift between the two components.\n\n' +
+          '**Check it in ten seconds:** tab to it, then click and press Enter. The ' +
+          '**Actions** panel stays empty; the control is still reachable and announced.',
       },
     },
   },
@@ -197,7 +203,8 @@ export const Loading: Story = {
       description: {
         story:
           'The glyph is replaced by the spinner and `aria-busy` is set. The animation respects ' +
-          '`prefers-reduced-motion`.',
+          '`prefers-reduced-motion`.\n\n' +
+          '**Check it in ten seconds:** click it. The **Actions** panel stays empty.',
       },
     },
   },
