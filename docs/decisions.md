@@ -143,6 +143,70 @@ would invent intent the design never expressed, and the semantic layer exists to
 capture intent, not manufacture it. A primitive with no mapping and no consumer is the
 clearest proof the layer boundary is real.
 
+## The evidence rule, third instance: no `tone` on IconButton
+
+The Figma `IconButton` set has three variants and no Danger equivalent. `IconButton`
+therefore ships without a `tone` prop, even though `danger-solid` already exists and a
+destructive icon button is an obvious need.
+
+That "obvious need" is exactly the argument being refused. If _"somebody will want it"_
+counts as evidence, the rule stops being applicable — everything missing from a design
+system is a common need for somebody. The criterion has to be evidence in the source,
+or it is not a criterion.
+
+The cost is also asymmetric in our favour. If a designer asks for a destructive icon
+button tomorrow, the token exists and adding the prop is a minor bump that breaks
+nobody. Expose it now and guess wrong — perhaps destructive icon buttons carry the
+colour on the icon with no fill — and we have shipped public API that has to be
+deprecated.
+
+This is the same test applied a third time: to `auxiliary`, to `warning`/`success`/
+`info`, and now to a component prop. Three applications of one rule is a principle;
+one is a preference.
+
+## A design file documents what exists, not how to decide
+
+The TapTap file's Overview page defines each section (General is "the Visual Language
+foundation of a system"; Data Entry is "inputting of data or information from various
+sources into a system"; Feedback is "displaying reaction to user's operation or system
+process"). Templates is composition — example Game Center screens. That is the whole of
+the written guidance.
+
+What no page contains: principles, a spacing scale, naming conventions, or per-component
+usage rules. The file is an inventory, not a rulebook.
+
+That absence is the clearest single justification for the semantic token layer. Figma
+ships primitives with no semantic layer, and it ships components with no stated rules
+for choosing between them — so the layer that encodes _intent_ (`accent-solid` rather
+than `primary-600`; `variant` × `tone` rather than eight flat variants) is a
+**contribution, not a transcription**. It is also why the divergences in
+[design-fidelity.md](design-fidelity.md) are decisions rather than deviations: there was
+no documented rule to deviate from, only values to measure.
+
+## Deprecation policy: mark, communicate, migrate, then remove
+
+Semver says _when_ a break is allowed. It does not say what a consumer is owed on the way
+there, so:
+
+1. **Mark** — JSDoc `@deprecated` naming the replacement, plus a dev-only console warning
+   (never in production).
+2. **Communicate** — state the removal version in the changeset, so it reaches
+   `CHANGELOG.md` and the release notes rather than living in a commit nobody reads.
+3. **Migrate** — ship a codemod whenever the change is mechanical (a renamed prop, a
+   re-pointed token). If it can be done for them, it should be.
+4. **Remove** — only in a subsequent major, never in the release that deprecates.
+
+Adoption of an internal design system is voluntary in practice: a team that gets burned
+writes its own button and never comes back. Breaking a team once costs their trust for
+far longer than any deprecation window costs us.
+
+Its first application is a free one, deliberately. `accent-subtle` was added to the token
+layer on the assumption that Ghost's hover surface was a brand tint; extracting the
+component proved it is a neutral wash (`neutral-100`/`neutral-300`), leaving the token
+with no consumer. Because the `./styles.css` export is still withdrawn, nothing external
+can depend on it, so it is simply removed. Exercising the policy while the cost is zero
+is the point — the mechanism gets proven before it is load-bearing.
+
 ## Contrast is a contract, not a document
 
 The accessibility decisions (which brand conflicts are accepted, which failures are

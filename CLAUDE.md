@@ -55,8 +55,9 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   diff can't show, and keep it to a sentence or two.
 - **No tool or AI attribution, anywhere.** No "Generated with Claude Code", no
   `Co-Authored-By` trailer, no emoji credit — in commit messages _or_ PR
-  descriptions. This repo is a deliverable an interviewer reads; the authorship
-  must read as the engineer's.
+  descriptions. Not because the tooling is hidden — this repo ships a `CLAUDE.md`
+  and the AI-assisted workflow is discussed openly — but because a commit log
+  describes _the change_, not the tools that produced it.
 - Branch names match the commit type and describe the change: `fix/`, `feat/`,
   `chore/`, `build/`, `docs/`.
 - `cva` for variants; `cn()` / `twMerge` for class composition, so a consumer's
@@ -73,6 +74,15 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - **A gate that has never failed is unproven.** Prove it by provoking the failure,
   not observing the pass — an invalid commit message, a spec that should error, a
   check name that must resolve. If you can't make it fail, you don't know it works.
+- **A component is hand-tested before its PR opens.** Commit freely on the branch —
+  granular history is wanted — but when the component, its tests and its stories are
+  done, **stop and say it's ready**, then wait. The maintainer runs Storybook, works
+  it by keyboard, checks both theme modes and reads the Design Fidelity story before
+  a PR exists. Everything a gate proves is _measurable_ — ratios, ΔE, computed boxes,
+  test results. None of it catches whether the thing **feels** right: whether a focus
+  ring reads at 2px offset on a cyan fill, whether a spinner is legible at `sm`,
+  whether disabled looks disabled rather than broken. That needs eyes and a keyboard,
+  and it is far cheaper before a PR than after.
 
 ## Where the detail lives
 
@@ -122,6 +132,19 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   explicitly, because a warm pnpm cache skips the postinstall that downloads it.
 - Cypress 13 warns React 19 / Vite 6 aren't officially supported (works; a Cypress
   15 bump clears it) — deferred.
+- **No visual-regression coverage — acknowledged, not built.** The contrast contract
+  catches a token change that degrades _accessibility_; nothing catches one that
+  merely makes a component **look** different. And the culprit is usually a primitive
+  three levels below the component being edited, so the diff that breaks a button is
+  rarely in the button. At three components that is eye-checkable; at thirty it is
+  not. Chromatic against the Storybook build CI already produces is the natural fit.
+  Whether it lands depends on time remaining after Dialog.
+- **The completeness guard covers colour only.** `parseTheme` filters on
+  `--color-*`, so `--radius-*`, `--text-*` and `--shadow-*` are invisible to it: a
+  radius or type token can be added with no decision recorded and nothing goes red.
+  The colour guard is the one that protects an accessibility contract, so this is a
+  deliberate boundary rather than an oversight — but now that radius tokens exist,
+  the boundary is worth naming.
 
 ### Obligations the token layer hands to the component sessions
 
