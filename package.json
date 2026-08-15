@@ -123,5 +123,10 @@
     "typescript-eslint": "^8.18.0",
     "vite": "^6.0.0",
     "vite-plugin-dts": "^4.4.0"
+  },
+  "dependencies": {
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.6.0"
   }
 }

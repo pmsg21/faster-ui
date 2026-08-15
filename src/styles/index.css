@@ -172,21 +172,23 @@
   --color-surface-active: var(--neutral-300); /* ghost/row pressed — one step past hover */
 
   /* Text / foreground */
-  --color-text-primary: var(--neutral-700); /* body, headings */
-  --color-text-secondary: var(--neutral-600); /* source implied 500 (3.28:1); remapped for AA */
-  --color-text-disabled: var(--neutral-400); /* WCAG-exempt */
-  --color-text-on-accent: var(
+  --color-content-primary: var(--neutral-700); /* body, headings */
+  --color-content-secondary: var(--neutral-600); /* source implied 500 (3.28:1); remapped for AA */
+  --color-content-disabled: var(--neutral-400); /* WCAG-exempt */
+  --color-content-on-accent: var(
     --neutral-700
   ); /* source shows white (fails at every step); dark ships */
-  --color-text-accent: var(--primary-600); /* ghost/link button text — brand conflict, see a11y */
-  --color-text-danger: var(--danger-700); /* error text — brand conflict, see a11y */
+  --color-content-accent: var(
+    --primary-600
+  ); /* ghost/link button text — brand conflict, see a11y */
+  --color-content-danger: var(--danger-700); /* error text — brand conflict, see a11y */
 
   /* Borders */
-  --color-border-subtle: var(--neutral-300); /* default field border, dividers */
-  --color-border-default: var(--neutral-400); /* stronger/hover field border */
-  --color-border-disabled: var(--neutral-200);
-  --color-border-focus: var(--primary-600); /* focus outline colour */
-  --color-border-danger: var(--danger-600); /* invalid field border */
+  --color-line-subtle: var(--neutral-300); /* default field border, dividers */
+  --color-line-default: var(--neutral-400); /* stronger/hover field border */
+  --color-line-disabled: var(--neutral-200);
+  --color-line-focus: var(--primary-600); /* focus outline colour */
+  --color-line-danger: var(--danger-600); /* invalid field border */
 
   /* Accent (Primary) — Button primary: 600 / 500 hover / 700 active / 300 disabled.
    * There is deliberately NO accent-subtle: the extracted Button shows the accent
@@ -209,12 +211,12 @@
   --color-danger-subtle-active: var(--danger-200);
 
   /* Focus ring (Input focus 500/600) — brand conflict vs SC 1.4.11, see a11y */
-  --color-ring-focus: var(--primary-500);
+  --color-focus: var(--primary-500);
   /* The focus indicator that actually carries SC 1.4.11. Cyan cannot: it measures
    * 1.88–2.12 on white against a 3.0 bar. A neutral ring clears it on every surface
    * a control sits on, including the cyan fill itself. Cyan stays available as a
    * decorative inner ring (Input), never as the sole indicator. */
-  --color-ring-focus-strong: var(--neutral-700);
+  --color-focus-strong: var(--neutral-700);
 
   /* ── Layer 2 · typography — size + line-height, headings carry weight ─────
    * H1–Title are Medium (500) in the source, so weight is baked. Subtitle /
@@ -287,7 +289,7 @@
   --color-surface-raised: var(--neutral-700);
   --color-surface-overlay: var(--neutral-700);
   --color-surface-sunken: var(--black); /* deepest recess */
-  --color-surface-muted: var(--neutral-600); /* disabled fill (text-disabled is exempt) */
+  --color-surface-muted: var(--neutral-600); /* disabled fill (content-disabled is exempt) */
   --color-surface-hover: var(--neutral-600); /* transient hover — carries no required text */
 
   /* PRESSED goes DARKER in dark mode, the opposite of light. Not a stylistic
@@ -299,13 +301,15 @@
   --color-surface-active: var(--black);
   --color-danger-subtle-active: var(--black);
 
-  --color-ring-focus-strong: var(--neutral-50); /* the ring inverts; cyan still can't carry it */
+  --color-focus-strong: var(--neutral-50); /* the ring inverts; cyan still can't carry it */
 
-  --color-text-primary: var(--neutral-50);
-  --color-text-secondary: var(--neutral-300);
-  --color-text-disabled: var(--neutral-500);
-  --color-text-accent: var(--primary-400); /* brighter cyan reads on dark (and passes AA) */
-  --color-text-danger: var(--danger-300); /* lighter red seats on both the surface and the wash */
+  --color-content-primary: var(--neutral-50);
+  --color-content-secondary: var(--neutral-300);
+  --color-content-disabled: var(--neutral-500);
+  --color-content-accent: var(--primary-400); /* brighter cyan reads on dark (and passes AA) */
+  --color-content-danger: var(
+    --danger-300
+  ); /* lighter red seats on both the surface and the wash */
 
   /* The ramp has no dark chromatic tint, so the subtle brand surface degrades to a
    * neutral hover wash in dark; a ghost control's brand identity is then carried by
@@ -313,9 +317,9 @@
    * docs/accessibility.md — not a value invented to fill the gap. */
   --color-danger-subtle: var(--neutral-600);
 
-  --color-border-subtle: var(--neutral-600);
-  --color-border-default: var(--neutral-500);
-  --color-border-disabled: var(--neutral-600);
-  --color-border-focus: var(--primary-500);
-  --color-border-danger: var(--danger-500);
+  --color-line-subtle: var(--neutral-600);
+  --color-line-default: var(--neutral-500);
+  --color-line-disabled: var(--neutral-600);
+  --color-line-focus: var(--primary-500);
+  --color-line-danger: var(--danger-500);
 }

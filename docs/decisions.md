@@ -143,6 +143,61 @@ would invent intent the design never expressed, and the semantic layer exists to
 capture intent, not manufacture it. A primitive with no mapping and no consumer is the
 clearest proof the layer boundary is real.
 
+## A token name must not begin with a Tailwind utility prefix
+
+In Tailwind v4 a utility is `<utility-prefix>-<token-name>`, and the prefix **composes
+onto** the token name rather than replacing it. So `--color-text-primary` does not
+produce `text-primary`; it produces `text-text-primary`, and `text-primary` does not
+exist at all.
+
+The first version of this token layer named its groups `text-*`, `border-*` and
+`ring-focus*` — the roles they serve — and [tokens.md](tokens.md) stated that each token
+yields `bg-*`, `text-*`, `border-*` and `ring-*` utilities. A reasonable reader concluded
+`text-primary` existed. Nothing contradicted them, because no component had consumed a
+token yet: the failure was latent until someone wrote the first `className`, at which
+point the likely outcome is a quiet workaround rather than a fix.
+
+The groups were renamed before any component shipped: `text-*` → `content-*`,
+`border-*` → `line-*`, `ring-focus*` → `focus*`. The new names had to survive a second
+test — do they still describe intent, or do they merely dodge a collision? They describe
+intent: `content-primary` is the primary content, `line-subtle` is a subtle line. Dropping
+`ring` from `focus-strong` is strictly more accurate, since that token is consumed by both
+`ring-*` and `outline-*`; naming it after one of them was the accident.
+
+This is cheap to re-break and hard to notice, so it is a guard rather than a note.
+`findCollidingTokenNames` fails the build on any `--color-*` token starting with a
+colour-utility prefix, and — following `IGNORED` — an exception must carry a reason:
+`accent-*` is allowed, because the `accent-color` utility (the native form-control tint)
+is never authored here, so `accent-solid` is only ever read as `bg-accent-solid`.
+
+The general lesson is the one this repo keeps re-learning: a documented claim that
+nothing executes is a claim that will eventually be false. This one had been false since
+the day it was written.
+
+## Not every convention earns a gate
+
+The working agreement says a gate that has never failed is unproven, and every gate in
+this repo is proven by provoking it. The counterpart matters just as much: **deciding
+what does not become a gate.**
+
+Separated type imports (`import type { X } from 'y'` on its own line) are the worked
+example. `@typescript-eslint/consistent-type-imports` will _autofix_ to that style but
+will not _report_ an inline `import { type X, y }` — the two are different things, and
+closing the gap needs another plugin. We declined to add one.
+
+The test is what a violation costs a consumer. Contrast, hardcoded colours, token
+completeness, commit format: each prevents a defect that reaches someone downstream — an
+illegible label, a colour outside the token layer, a release bumped wrongly. An inline
+type import costs nobody anything. It compiles identically, behaves identically, and
+`eslint --fix` in `pre-commit` rewrites it before it lands. Adding a dependency to
+convert a legibility preference into a build failure is rigour applied by habit rather
+than judgement.
+
+There is a second-order reason. The "prove the gate" discipline is worth something
+precisely because it is reserved for rules that earn it. If everything is a gate, the
+word stops carrying information, and the ones that genuinely protect a consumer no longer
+stand out from the ones that police whitespace.
+
 ## The evidence rule, third instance: no `tone` on IconButton
 
 The Figma `IconButton` set has three variants and no Danger equivalent. `IconButton`

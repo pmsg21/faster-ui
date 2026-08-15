@@ -22,7 +22,7 @@ misses even the 3.0 large-text floor:
 | primary-600 (default) | 2.12 ❌ | primary-600                    | **7.78 ✅** |
 | primary-700 (active)  | 2.80 ❌ | primary-700                    | **5.89 ✅** |
 
-So `text-on-accent` maps to `neutral-700`. **The button will not look like the
+So `content-on-accent` maps to `neutral-700`. **The button will not look like the
 mock — dark text on cyan, not white.** That is a deliberate, measured improvement,
 not a transcription error, and it is the first thing to raise in a design review.
 (For reference: _pure black_ on primary-600 is 9.90:1; our darkest neutral primitive
@@ -38,7 +38,7 @@ A grey that fails when a neighbouring grey passes costs nothing to fix.
 
 | Token                    | Source implied | Measured | Shipped         | Measured |
 | ------------------------ | -------------- | -------- | --------------- | -------- |
-| `text-secondary`         | neutral-500    | 3.28 ❌  | **neutral-600** | 8.72 ✅  |
+| `content-secondary`      | neutral-500    | 3.28 ❌  | **neutral-600** | 8.72 ✅  |
 | `text-info` (deferred)\* | info-600       | 3.68 ❌  | info-700        | 4.57 ✅  |
 
 \* `text-info` is not shipped in this PR (info is primitives-only); the remap is
@@ -51,29 +51,29 @@ an engineer's. We can't fix them in the mapping without abandoning the brand col
 so each is **accepted with a reason** in the contract and **mitigated at component
 level** — and, crucially, made impossible to ship _unknowingly_.
 
-- **Cyan as foreground on white** (`text-accent`, links): 2.03–2.12:1 at every step.
+- **Cyan as foreground on white** (`content-accent`, links): 2.03–2.12:1 at every step.
   Mitigation: pair with an icon and neutral text, or place on a tinted surface.
   **Decision for every non-solid button label:** the label uses a _neutral_
   foreground, never the cyan. Extracting Button showed the design puts cyan on white
   across the interaction states — Outline hover 1.88, Outline pressed 2.80, Link
   2.12 / 1.88 / 2.80 — all far below AA, and a button label must be legible.
-  `text-accent` is reserved for genuine hyperlink text and non-text accent (icon,
-  border, hover fill). The shipped label is `text-secondary` at rest and darkens to
-  `text-primary` on hover and press (8.72 → 15.12/12.60); the design's hue shift
+  `content-accent` is reserved for genuine hyperlink text and non-text accent (icon,
+  border, hover fill). The shipped label is `content-secondary` at rest and darkens to
+  `content-primary` on hover and press (8.72 → 15.12/12.60); the design's hue shift
   becomes a lightness shift, measured at ΔE 20.1 so the state stays perceptible.
-- **Focus ring** (`border-focus`/`ring-focus` on white): 1.88–2.12:1 vs the 3.0 that
+- **Focus ring** (`line-focus`/`focus` on white): 1.88–2.12:1 vs the 3.0 that
   SC 1.4.11 requires. Cyan cannot be the indicator of record, so it isn't:
-  `ring-focus-strong` (neutral) carries focus at 15.79–16.48 and is _required_ to
-  clear the bar in both modes, while cyan `ring-focus` stays available as a
+  `focus-strong` (neutral) carries focus at 15.79–16.48 and is _required_ to
+  clear the bar in both modes, while cyan `focus` stays available as a
   decorative inner ring. A control's focus state cannot rest on an exemption.
-- **Danger text on white** (`text-danger`): 4.21:1 — `danger-700` is the darkest the
+- **Danger text on white** (`content-danger`): 4.21:1 — `danger-700` is the darkest the
   ramp offers and still misses 4.5. Mitigation: icon + the red, or a tinted surface.
-- **Danger pressed label** (`text-on-accent` on `danger-solid-active`): 3.91:1 — above
+- **Danger pressed label** (`content-on-accent` on `danger-solid-active`): 3.91:1 — above
   the 3.0 non-text floor, below 4.5 for small text; accepted as a transient state.
 - **Danger as a non-solid label.** Unlike cyan, red is _kept_. The design tracks the
   ramp per state (600 default / 500 hover / 700 pressed → 3.47 / 2.98 / 4.21); we pin
-  the label to `text-danger` (`danger-700`, 4.21) across all three instead. That keeps
-  one accepted exemption — the same 4.21 class already accepted for `text-danger` on
+  the label to `content-danger` (`danger-700`, 4.21) across all three instead. That keeps
+  one accepted exemption — the same 4.21 class already accepted for `content-danger` on
   white — rather than minting three new ones, which is precisely the dilution
   [decisions.md](decisions.md) warns against. The asymmetry with cyan is deliberate:
   cyan is brand, red is _warning_. Neutralising the label on a destructive control
@@ -94,29 +94,29 @@ in dark the brand hues sit on dark surfaces, where they have contrast to spare.
 
 | Foreground        | Background           | Light    | Dark     |
 | ----------------- | -------------------- | -------- | -------- |
-| text-primary      | surface-base         | 15.79 ✅ | 15.79 ✅ |
-| text-primary      | surface-raised       | 16.48 ✅ | 15.79 ✅ |
-| text-primary      | surface-hover        | 15.12 ✅ | 8.36 ✅  |
-| text-primary      | surface-active       | 12.60 ✅ | 20.12 ✅ |
-| text-secondary    | surface-base         | 8.36 ✅  | 12.60 ✅ |
-| text-secondary    | surface-raised       | 8.72 ✅  | 12.60 ✅ |
-| text-on-accent    | accent-solid         | 7.78 ✅  | 7.78 ✅  |
-| text-on-accent    | accent-solid-hover   | 8.76 ✅  | 8.76 ✅  |
-| text-on-accent    | accent-solid-active  | 5.89 ✅  | 5.89 ✅  |
-| text-on-accent    | danger-solid         | 4.75 ✅  | 4.75 ✅  |
-| text-on-accent    | danger-solid-hover   | 5.53 ✅  | 5.53 ✅  |
-| text-on-accent    | danger-solid-active  | 3.91 ⚠️  | 3.91 ⚠️  |
-| text-accent       | surface-base         | 2.03 ⚠️  | 10.44 ✅ |
-| text-accent       | surface-raised       | 2.12 ⚠️  | 10.44 ✅ |
-| text-danger       | surface-raised       | 4.21 ⚠️  | 11.63 ✅ |
-| text-danger       | danger-subtle        | 3.85 ⚠️  | 6.16 ✅  |
-| text-danger       | danger-subtle-active | 3.69 ⚠️  | 14.82 ✅ |
-| border-focus      | surface-raised       | 2.12 ⚠️  | 8.76 ✅  |
-| ring-focus        | surface-raised       | 1.88 ⚠️  | 8.76 ✅  |
-| ring-focus-strong | surface-base         | 15.79 ✅ | 15.79 ✅ |
-| ring-focus-strong | surface-raised       | 16.48 ✅ | 15.79 ✅ |
+| content-primary   | surface-base         | 15.79 ✅ | 15.79 ✅ |
+| content-primary   | surface-raised       | 16.48 ✅ | 15.79 ✅ |
+| content-primary   | surface-hover        | 15.12 ✅ | 8.36 ✅  |
+| content-primary   | surface-active       | 12.60 ✅ | 20.12 ✅ |
+| content-secondary | surface-base         | 8.36 ✅  | 12.60 ✅ |
+| content-secondary | surface-raised       | 8.72 ✅  | 12.60 ✅ |
+| content-on-accent | accent-solid         | 7.78 ✅  | 7.78 ✅  |
+| content-on-accent | accent-solid-hover   | 8.76 ✅  | 8.76 ✅  |
+| content-on-accent | accent-solid-active  | 5.89 ✅  | 5.89 ✅  |
+| content-on-accent | danger-solid         | 4.75 ✅  | 4.75 ✅  |
+| content-on-accent | danger-solid-hover   | 5.53 ✅  | 5.53 ✅  |
+| content-on-accent | danger-solid-active  | 3.91 ⚠️  | 3.91 ⚠️  |
+| content-accent    | surface-base         | 2.03 ⚠️  | 10.44 ✅ |
+| content-accent    | surface-raised       | 2.12 ⚠️  | 10.44 ✅ |
+| content-danger    | surface-raised       | 4.21 ⚠️  | 11.63 ✅ |
+| content-danger    | danger-subtle        | 3.85 ⚠️  | 6.16 ✅  |
+| content-danger    | danger-subtle-active | 3.69 ⚠️  | 14.82 ✅ |
+| line-focus        | surface-raised       | 2.12 ⚠️  | 8.76 ✅  |
+| focus             | surface-raised       | 1.88 ⚠️  | 8.76 ✅  |
+| focus-strong      | surface-base         | 15.79 ✅ | 15.79 ✅ |
+| focus-strong      | surface-raised       | 16.48 ✅ | 15.79 ✅ |
 
-Disabled text (`text-disabled`) is WCAG-exempt and not tabled.
+Disabled text (`content-disabled`) is WCAG-exempt and not tabled.
 
 ### The danger ghost pressed wash
 

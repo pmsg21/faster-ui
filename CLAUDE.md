@@ -22,7 +22,7 @@ noise.
 - _Primitives_ — raw values, no meaning. Private. In `:root` in
   `src/styles/index.css`, and **immutable across modes** (a ramp is a fact). Never
   referenced by a component.
-- _Semantic tokens_ — encode intent (`surface-base`, `text-danger`). The public
+- _Semantic tokens_ — encode intent (`surface-base`, `content-danger`). The public
   API. Declared in `@theme`. **Dark mode re-points these** in the
   `[data-theme='dark']` block — it overrides semantic tokens, never primitives (see
   [docs/decisions.md](docs/decisions.md)).
@@ -63,6 +63,14 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - `cva` for variants; `cn()` / `twMerge` for class composition, so a consumer's
   `className` wins. `forwardRef` on anything rendering a DOM element. Props named
   for intent (`variant="danger"`), never appearance (`variant="red"`).
+- **Type imports are their own statement, never inline.** `import type { X } from
+'y'` on its own line — not `import { type X, y } from 'y'`. A reader scanning
+  the head of a file can then tell what is erased at compile time from what is
+  real runtime weight, without parsing each specifier. Applied automatically by
+  `eslint --fix` in `pre-commit` (`consistent-type-imports`,
+  `fixStyle: 'separate-type-imports'`) — **not** a failing rule: an inline type
+  import lints clean, it just gets rewritten before it lands. That is deliberate;
+  see [docs/decisions.md](docs/decisions.md) on what earns a gate.
 - `pnpm exec`, never `pnpm dlx`; pin versions, never `@latest`.
 
 ## Working discipline
@@ -158,9 +166,9 @@ overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is impercept
   nothing else separates an elevated surface from the page.
 - **Focus-ring visibility (Input).** The brand cyan ring is below SC 1.4.11 on white
   (≤2.12:1). Input completes focus with a neutral offset/halo, not the cyan alone.
-- **Non-text border contrast (Input).** `border-subtle`/`border-default`/`border-danger`
+- **Non-text border contrast (Input).** `line-subtle`/`line-default`/`line-danger`
   are below 3:1 on white; the field must be identifiable by more than its border (label,
   fill, focus), verified in the component's own tests.
-- **Ghost/link button labels use a neutral foreground**, not `text-accent` — cyan fails
+- **Ghost/link button labels use a neutral foreground**, not `content-accent` — cyan fails
   AA on white (2.12) and on `accent-subtle` (2.02). Cyan is for links and non-text accent.
   Revisit with the component in front of us when Button is built.
