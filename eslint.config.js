@@ -42,6 +42,14 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       ...jsxA11y.flatConfigs.strict.rules,
 
+      // Class ORDER is Prettier's job, not ESLint's. Both plugins sort, they
+      // disagree, and each undoes the other: `eslint --fix` reorders, then
+      // `prettier --write` reorders back, so `lint` and `format:check` cannot be
+      // green at the same time. Prettier owns formatting here (it also runs last
+      // in lint-staged), so the ESLint sorter is off. `no-custom-classname` stays
+      // on — that one catches a mistyped token, which is a real defect.
+      'tailwindcss/classnames-order': 'off',
+
       // No console noise in a published library.
       'no-console': ['error', { allow: ['warn', 'error'] }],
 
