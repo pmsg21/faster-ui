@@ -9,6 +9,12 @@ import { mount } from 'cypress/react18';
 
 import '@testing-library/cypress/add-commands';
 import 'cypress-axe';
+// Cypress's own `.type('{enter}')` dispatches synthetic key events, which do not
+// trigger a control's NATIVE behaviour: no click follows Enter on a button, a focused
+// button does not swallow Space, and there is no Tab traversal at all. real-events
+// drives the browser through CDP, so the keyboard assertions test what a keyboard
+// user actually gets. Chromium-family only — which is what we run.
+import 'cypress-real-events';
 import '../../src/styles/index.css';
 
 declare global {

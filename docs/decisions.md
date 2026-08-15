@@ -174,6 +174,49 @@ The general lesson is the one this repo keeps re-learning: a documented claim th
 nothing executes is a claim that will eventually be false. This one had been false since
 the day it was written.
 
+## A gate can be green because it never ran the thing it gates
+
+Three times now, a check has reported success while never executing its subject. Three
+occurrences make it a property of how gates fail, not a run of bad luck, so it is
+recorded as a lesson rather than three anecdotes.
+
+1. **The Cypress binary.** It lives in `~/.cache/Cypress`, outside the pnpm store, so a
+   warm cache skipped the postinstall that downloads it. The job succeeded because
+   there was nothing to run.
+2. **The `.storybook` files.** They sat outside the TypeScript project, so `tsc`
+   type-checked everything except the configuration most likely to drift.
+3. **Cypress and React 19.** Cypress 13's `cypress/react` mounts through the legacy
+   `ReactDOM.render`, which React 19 removed. It does not throw — it renders nothing
+   and leaves an empty application frame. The component-test gate had been green since
+   the beginning because the only spec imported the barrel and asserted on its exports;
+   it never mounted a component. `CLAUDE.md` recorded that React 19 "works" with
+   Cypress 13, and that sentence rested entirely on a spec that never exercised the
+   thing it claimed worked. Fixed by mounting through `cypress/react18`, which uses
+   `createRoot` — still React 19's API — until the Cypress 15 bump.
+
+The shared shape: **passing and covering are different claims, and a green tick cannot
+tell them apart.** "A gate that has never failed is unproven" catches a check whose
+assertion is too weak; this is the failure one step earlier, where the assertion never
+reached its subject at all. Provoking a failure is still the test — but the thing to
+provoke is _the subject running_, not just the rule firing. In practice: look at what
+the gate actually executed. A spec count, an emitted artefact, a log line. Exit code
+zero is the weakest evidence a gate produces.
+
+## The pnpm argument, demonstrating itself
+
+`cypress-axe` declares `axe-core` as a peer dependency. We never declared it, and pnpm's
+non-flat `node_modules` does not hoist it, so `cy.injectAxe()` failed to read
+`node_modules/axe-core/axe.min.js` — every accessibility assertion in the browser was
+erroring rather than checking anything.
+
+This is precisely the phantom dependency the README cites as the reason for choosing
+pnpm, occurring in this repository. Under npm's flat hoisting it would have "worked"
+silently, and the missing declaration would have surfaced later — in a consumer's
+install, where the cost is someone else's broken build. The fix is the one the argument
+predicts: declare what you import. `axe-core` is now an explicit devDependency, pinned
+to the version `jest-axe` already resolved, so both test runners measure with the same
+engine.
+
 ## Not every convention earns a gate
 
 The working agreement says a gate that has never failed is unproven, and every gate in

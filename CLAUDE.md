@@ -57,6 +57,22 @@ failure mode is invisible precisely on the tests that matter most: a
 anything. Same reason a multi-key sequence asserts after every key rather than
 once at the end — otherwise a green run cannot tell you which key was handled.
 
+**A failing test is evidence. Deleting it is not a fix.** The first instinct on red
+must be to find out _why_ — the test may be right and the code wrong, or the test may
+be wrong, or the **tool** may be unable to express what was asked of it. That third
+case is a finding about the tooling, and deleting the test converts it into silence.
+
+So: never remove or weaken a test to get a suite green. If one has to change, say so
+**before** doing it, and state three things — the reason, where the coverage went, and
+whether any is lost. Coverage that merely _moves_ (a keyboard assertion leaving Cypress
+for Jest, because `.type()` cannot trigger native activation) is a trade to be agreed,
+not absorbed. Coverage that is genuinely **lost** needs explicit sign-off, and gets
+recorded in known-gaps — an untested behaviour nobody wrote down is indistinguishable
+from one nobody thought of.
+
+The exception is a test that asserts something untrue. Those get replaced, not kept —
+but the replacement must be _narrower and more precise_, never merely quieter.
+
 **`userEvent.setup()` must not be called at module scope.** It binds when called,
 and at import time the test environment is not fully established, so it can bind
 to a `document` that is later replaced. Inside `beforeEach` or inside each test
@@ -109,6 +125,19 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - **A gate that has never failed is unproven.** Prove it by provoking the failure,
   not observing the pass — an invalid commit message, a spec that should error, a
   check name that must resolve. If you can't make it fail, you don't know it works.
+- **A green gate must be proven to _run_ the thing it gates.** Passing and covering
+  are different claims, and a gate that never executes its subject reports the same
+  green as one that does. This has now bitten three times: the Cypress binary a warm
+  pnpm cache skipped, the `.storybook` files `tsc` never included, and Cypress
+  "supporting" React 19 on the strength of a spec that never mounted a component
+  (see [docs/decisions.md](docs/decisions.md)). Three is a pattern, not bad luck.
+  So when a gate is added, check what it actually executed — a spec count, an emitted
+  file, a log line — not merely that it exited zero.
+- **The plan is an agreement; diverging from it is a report, not a note.** If a plan
+  says something will be verified a particular way and it turns out it cannot be,
+  that is a finding to raise before proceeding. Writing a scope note and moving on
+  leaves the agreement describing something other than what shipped, and the person
+  who agreed to it is the last to find out.
 - **A component is hand-tested before its PR opens.** Commit freely on the branch —
   granular history is wanted — but when the component, its tests and its stories are
   done, **stop and say it's ready**, then wait. The maintainer runs Storybook, works

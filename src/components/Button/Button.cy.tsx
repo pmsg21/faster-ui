@@ -178,40 +178,135 @@ describe('Button — touch targets (SC 2.5.8)', () => {
 });
 
 /**
- * SCOPE NOTE. Cypress's `.type('{enter}')` dispatches synthetic key events, which
- * do NOT trigger a button's native activation behaviour — no click follows, and a
- * focused button does not swallow Space. So key-level ACTIVATION is asserted in
- * Button.test.tsx, where `user-event` models it correctly, and this file asserts
- * what a real browser adds: that focus lands, that a real click reaches the
- * handler, and that a disabled control is reachable but inert.
+ * Real keyboard, driven through CDP by `cypress-real-events`. Cypress's own
+ * `.type('{enter}')` dispatches synthetic events that never trigger a control's
+ * native behaviour, so it cannot answer any of the questions below: whether Tab
+ * actually reaches the control, whether Enter activates it, or whether the button
+ * swallows Space instead of scrolling the page.
  *
- * Getting true key-level activation (and a real Tab traversal) here needs
- * `cypress-real-events`, which drives the browser through CDP. That is a
- * dependency decision, not something to slip in — flagged, not assumed.
+ * Jest covers the same activation through `user-event`. That is not duplication —
+ * `user-event` models the browser's behaviour, and this proves the browser agrees.
  */
-describe('Button — keyboard and pointer in a real browser', () => {
-  it('takes focus and reaches the handler on a real click', () => {
+describe('Button — real keyboard operation', () => {
+  /**
+   * Tab traversal has to start somewhere known. In a component test the document
+   * begins with focus outside the application frame, so a bare `realPress('Tab')`
+   * lands nowhere. Focusing this sentinel first makes the traversal deterministic —
+   * and turns the assertion into the sharper claim: the button is the NEXT stop in
+   * sequential focus order, not merely focusable in isolation.
+   */
+  function mountAfterSentinel(node: React.ReactNode) {
+    mountOnSurface(
+      <>
+        <button type="button" data-testid="sentinel">
+          Sentinel
+        </button>
+        {node}
+      </>
+    );
+    cy.findByTestId('sentinel').focus();
+  }
+
+  const subject = () => cy.findByRole('button', { name: 'Save' });
+
+  it('is the next stop in tab order', () => {
+    mountAfterSentinel(<Button>Save</Button>);
+
+    subject().should('not.have.focus');
+    cy.realPress('Tab');
+    subject().should('have.focus');
+  });
+
+  it('activates on Enter', () => {
     const onClick = cy.stub().as('onClick');
-    mountOnSurface(<Button onClick={onClick}>Save</Button>);
+    mountAfterSentinel(<Button onClick={onClick}>Save</Button>);
 
     cy.get('@onClick').should('have.callCount', 0);
-    cy.findByRole('button').focus().should('have.focus');
-    cy.findByRole('button').click();
+    cy.realPress('Tab');
+    subject().should('have.focus');
+    cy.realPress('Enter');
     cy.get('@onClick').should('have.callCount', 1);
   });
 
-  it('is focusable while disabled, and stays inert', () => {
+  it('activates on Space', () => {
     const onClick = cy.stub().as('onClick');
-    mountOnSurface(
+    mountAfterSentinel(<Button onClick={onClick}>Save</Button>);
+
+    cy.get('@onClick').should('have.callCount', 0);
+    cy.realPress('Tab');
+    subject().should('have.focus');
+    cy.realPress('Space');
+    cy.get('@onClick').should('have.callCount', 1);
+  });
+
+  it('swallows Space instead of scrolling the page', () => {
+    // A focused button consumes Space; if it did not, activating it would scroll
+    // the page under the user. Only a real key event can show this — synthetic
+    // events never reach the browser's default action.
+    mountAfterSentinel(
+      <div style={{ height: '250vh' }}>
+        <Button>Save</Button>
+      </div>
+    );
+
+    cy.window().its('scrollY').should('equal', 0);
+    cy.realPress('Tab');
+    subject().should('have.focus');
+    cy.realPress('Space');
+    cy.window().its('scrollY').should('equal', 0);
+  });
+
+  it('stays in tab order while disabled, and inert under real keys', () => {
+    // The whole point of aria-disabled over the native attribute: the control stays
+    // in the tab order, so a keyboard user can find it and hear why it is disabled.
+    // The native attribute would make this test impossible to write.
+    const onClick = cy.stub().as('onClick');
+    mountAfterSentinel(
       <Button disabled onClick={onClick}>
         Save
       </Button>
     );
 
-    cy.findByRole('button').focus().should('have.focus');
     cy.get('@onClick').should('have.callCount', 0);
-    cy.findByRole('button').click();
+    cy.realPress('Tab');
+    subject().should('have.focus');
+
+    cy.realPress('Enter');
     cy.get('@onClick').should('have.callCount', 0);
+
+    cy.realPress('Space');
+    cy.get('@onClick').should('have.callCount', 0);
+  });
+
+  it('paints a visible neutral ring on keyboard focus', () => {
+    mountAfterSentinel(<Button>Save</Button>);
+
+    cy.realPress('Tab');
+    subject().should(($button) => {
+      const styles = window.getComputedStyle($button[0]!);
+      // Neutral, not cyan: the brand ring measures 1.88–2.12 against SC 1.4.11's 3.0.
+      expect(styles.outlineColor, 'outline colour').to.equal('rgb(31, 31, 31)');
+      expect(parseFloat(styles.outlineWidth), 'outline width').to.be.at.least(2);
+      expect(parseFloat(styles.outlineOffset), 'outline offset').to.be.at.least(2);
+    });
+  });
+
+  it('does not show the focus ring on a pointer press', () => {
+    // The ring is bound to :focus-visible, not :focus — which is why a mouse user
+    // does not get a ring on every click, while a keyboard user always does.
+    //
+    // The click has to land on a control that was NOT already keyboard-focused:
+    // :focus-visible is evaluated when focus MOVES, so clicking an element that
+    // already has a keyboard-derived ring leaves the ring in place. That is correct
+    // browser behaviour, and it is what made the first version of this test fail.
+    mountOnSurface(<Button>Save</Button>);
+
+    subject().realClick();
+    subject().should(($button) => {
+      // Focused, but without the ring — the state the distinction exists for.
+      expect($button[0]!.ownerDocument.activeElement, 'focused').to.equal($button[0]!);
+      expect(parseFloat(window.getComputedStyle($button[0]!).outlineWidth)).to.be.lessThan(2);
+    });
   });
 
   it('does not submit its form when disabled', () => {
@@ -235,20 +330,13 @@ describe('Button — keyboard and pointer in a real browser', () => {
   });
 });
 
-describe('Button — focus indicator', () => {
-  it('paints a visible neutral outline when focused', () => {
-    mountOnSurface(<Button>Save</Button>);
-    cy.findByRole('button')
-      .focus()
-      .should(($button) => {
-        const styles = window.getComputedStyle($button[0]!);
-        // Neutral, not cyan: the brand ring measures 1.88–2.12 against SC 1.4.11's 3.0.
-        expect(styles.outlineColor, 'outline colour').to.equal('rgb(31, 31, 31)');
-        expect(parseFloat(styles.outlineWidth), 'outline width').to.be.at.least(2);
-        expect(parseFloat(styles.outlineOffset), 'outline offset').to.be.at.least(2);
-      });
-  });
-});
+// The former `Button — focus indicator` describe lived here. It asserted the ring's
+// colour, width and offset after a PROGRAMMATIC `.focus()`, and it passed only
+// because earlier specs had left the browser in keyboard modality — add a real
+// pointer press before it and it goes red, because `:focus-visible` correctly does
+// not match a programmatic focus. Every one of its three assertions now runs in
+// "paints a visible neutral ring on keyboard focus" above, after a real Tab. Nothing
+// was dropped; the test was moved to where its premise is actually true.
 
 describe('Button — accessibility in a real browser', () => {
   // axe's colour-contrast rules need painted pixels, so this is the one place
