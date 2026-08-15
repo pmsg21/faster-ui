@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
 
 import { IconButton } from './IconButton';
 
@@ -66,6 +67,7 @@ const meta = {
     size: 'md',
     disabled: false,
     loading: false,
+    onClick: fn(),
   },
 } satisfies Meta<typeof IconButton>;
 

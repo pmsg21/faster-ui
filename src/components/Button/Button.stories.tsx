@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
 
 import { Button } from './Button';
 
@@ -60,6 +61,14 @@ const meta = {
     size: 'md',
     disabled: false,
     loading: false,
+    // An explicit spy, not the old `argTypesRegex: '^on[A-Z].*'` auto-detection —
+    // that was deprecated in Storybook 8 and removed in 9. Being explicit also
+    // makes the handler usable from a play function later.
+    //
+    // It is doing real work in the Disabled and Loading stories: the Actions panel
+    // staying empty is the visible proof that activation is suppressed, which is
+    // otherwise an invisible behaviour in a static screenshot.
+    onClick: fn(),
   },
 } satisfies Meta<typeof Button>;
 
