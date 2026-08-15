@@ -30,12 +30,13 @@ Dark mode re-points the semantic tokens; primitives never change. See
 Semantic colour tokens are grouped by role, under Tailwind's `--color-*` namespace so
 each yields `bg-*`, `text-*`, `border-*`, and `ring-*` utilities:
 
-- `surface-*` — backgrounds (base, raised, overlay, sunken, muted, hover)
+- `surface-*` — backgrounds (base, raised, overlay, sunken, muted, hover, active)
 - `text-*` — foregrounds (primary, secondary, disabled, on-accent, accent, danger)
 - `border-*` — borders (subtle, default, disabled, focus, danger)
 - `accent-*` / `danger-*` — interactive fills and their states (solid, hover, active,
-  disabled, subtle)
-- `ring-focus` — the focus indicator colour
+  disabled; `subtle` and `subtle-active` on danger only)
+- `ring-focus` / `ring-focus-strong` — the decorative ring and the indicator of record
+- `radius-*` — corner radius by intent (`control`, `full`)
 
 Names describe **intent, never appearance** (`accent-solid`, not `cyan-600`), so a
 re-skin is a mapping change and a consumer never encodes a colour.
@@ -59,6 +60,7 @@ against unused tokens is not to create them.
 | `surface-sunken`        | neutral-100 | recessed well                                  |
 | `surface-muted`         | neutral-200 | disabled fill                                  |
 | `surface-hover`         | neutral-100 | ghost/row hover                                |
+| `surface-active`        | neutral-300 | ghost/row pressed — one step past hover        |
 | `text-primary`          | neutral-700 | body, headings                                 |
 | `text-secondary`        | neutral-600 | remapped from 500 for AA (see a11y)            |
 | `text-disabled`         | neutral-400 | WCAG-exempt                                    |
@@ -74,13 +76,20 @@ against unused tokens is not to create them.
 | `accent-solid-hover`    | primary-500 | hover lightens (source)                        |
 | `accent-solid-active`   | primary-700 | active darkens (source)                        |
 | `accent-solid-disabled` | primary-300 |                                                |
-| `accent-subtle`         | primary-100 | tinted background                              |
-| `danger-solid`          | danger-600  | full states — danger is a Button variant       |
+| `danger-solid`          | danger-600  | full states — danger is a Button _tone_        |
 | `danger-solid-hover`    | danger-500  |                                                |
 | `danger-solid-active`   | danger-700  |                                                |
 | `danger-solid-disabled` | danger-300  |                                                |
-| `danger-subtle`         | danger-100  |                                                |
-| `ring-focus`            | primary-500 | brand conflict vs SC 1.4.11 (see a11y)         |
+| `danger-subtle`         | danger-100  | danger ghost hover wash                        |
+| `danger-subtle-active`  | danger-200  | danger ghost pressed — lifted from 300 (a11y)  |
+| `ring-focus`            | primary-500 | decorative only; fails 1.4.11 (see a11y)       |
+| `ring-focus-strong`     | neutral-700 | the focus indicator of record                  |
+
+There is deliberately **no `accent-subtle`**. It existed on the assumption that the
+accent ghost wash was a brand tint; extracting Button showed it is neutral
+(`surface-hover` / `surface-active`), leaving the token with no consumer, so it was
+removed — the first application of the deprecation policy, made while the cost was
+zero. Only the danger tone tints its wash.
 
 ## Dark mode
 
@@ -89,20 +98,42 @@ no new hex, no primitive override. Brand fills (`accent-*`, `danger-*` solids) a
 dark label (`text-on-accent`) are mode-independent — cyan is cyan — so only surfaces,
 text and borders flip. Highlights:
 
-| Token                             | light →                  | dark →                                                                     |
-| --------------------------------- | ------------------------ | -------------------------------------------------------------------------- |
-| `surface-base`                    | neutral-50               | neutral-700                                                                |
-| `surface-raised`                  | white                    | neutral-700                                                                |
-| `surface-sunken`                  | neutral-100              | black                                                                      |
-| `text-primary`                    | neutral-700              | neutral-50                                                                 |
-| `text-secondary`                  | neutral-600              | neutral-300                                                                |
-| `text-accent`                     | primary-600              | primary-400                                                                |
-| `text-danger`                     | danger-700               | danger-300                                                                 |
-| `accent-subtle` / `danger-subtle` | primary-100 / danger-100 | neutral-600 (neutral wash — the ramp has no dark chromatic tint; see a11y) |
+| Token                                     | light →                  | dark →                                                                     |
+| ----------------------------------------- | ------------------------ | -------------------------------------------------------------------------- |
+| `surface-base`                            | neutral-50               | neutral-700                                                                |
+| `surface-raised`                          | white                    | neutral-700                                                                |
+| `surface-sunken`                          | neutral-100              | black                                                                      |
+| `surface-active` / `danger-subtle-active` | neutral-300 / danger-200 | black — pressed **darkens** in dark; the ramp forces it (see a11y)         |
+| `text-primary`                            | neutral-700              | neutral-50                                                                 |
+| `text-secondary`                          | neutral-600              | neutral-300                                                                |
+| `text-accent`                             | primary-600              | primary-400                                                                |
+| `text-danger`                             | danger-700               | danger-300                                                                 |
+| `danger-subtle`                           | danger-100               | neutral-600 (neutral wash — the ramp has no dark chromatic tint; see a11y) |
+| `ring-focus-strong`                       | neutral-700              | neutral-50 (the indicator inverts with the surface)                        |
 
 Because `@theme` is plain (never `@theme inline`), the utilities keep the `var()`
 indirection, so a mode is a single attribute flip on the root — no component renders
 differently, nothing is rebuilt. A third mode would be one more column of mappings.
+
+## Radius
+
+Two tokens, mapped once (no mode variance):
+
+- `--radius-control` → `4px` — every control corner Figma draws (Button, and Dialog
+  when it lands).
+- `--radius-full` → `9999px` — a fully rounded shape. Figma's IconButton specifies
+  `100px`, chosen to exceed half the largest square (40px); that is an _effect_
+  ("however round it takes to be a circle"), so it is transcribed as the effect
+  rather than as the literal 100.
+
+Named for intent rather than for a step on someone else's scale. Tailwind's `rounded-sm`
+happens to be 4px today, but it names a **framework** value: if the design moved to 6px,
+`rounded-sm` would keep compiling while meaning the wrong thing. `--radius-control` also
+declares that Button and Dialog share a _decision_ rather than happening to agree.
+
+Note the scope boundary: the contrast contract's completeness guard reads `--color-*`
+only, so radius tokens are **not** covered by it — recorded in
+[CLAUDE.md](../CLAUDE.md) known-gaps.
 
 ## Typography & elevation
 

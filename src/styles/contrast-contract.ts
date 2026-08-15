@@ -215,12 +215,24 @@ export const PAIRS: Pair[] = [
   },
 
   // Ghost/link control labels use a NEUTRAL foreground, not the brand cyan:
-  // cyan-on-white (2.12) and cyan-on-subtle (2.02) both fail AA, and a label
-  // must be legible. Cyan stays reserved for hyperlink text and non-text accent
-  // (icon, border, hover fill). This pair verifies the ghost hover surface.
+  // cyan on white measures 1.88–2.80 across the interaction states, and a label
+  // must be legible. Cyan stays on the non-text affordance — the Outline border,
+  // the icon — never on the text. The accent ghost label sits at text-secondary
+  // when resting (covered by the surface-base/raised pairs above) and darkens to
+  // text-primary on hover and press, which is what these two pairs verify.
+  //
+  // Note the wash is NEUTRAL, not a brand tint: extracting the Button showed the
+  // accent ghost hover/press surfaces are surface-hover / surface-active. Only the
+  // danger tone tints its wash, which is why there is no accent-subtle token.
   {
     foreground: 'text-primary',
-    background: 'accent-subtle',
+    background: 'surface-hover',
+    light: requireLevel('AA'),
+    dark: requireLevel('AA'),
+  },
+  {
+    foreground: 'text-primary',
+    background: 'surface-active',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
@@ -305,6 +317,16 @@ export const PAIRS: Pair[] = [
     light: acceptBelow('AA', BRAND_FOREGROUND_ON_WHITE),
     dark: requireLevel('AA'),
   },
+  // Danger ghost, pressed. The label is pinned to text-danger (danger-700) across
+  // the interaction states rather than tracking 600/500/700, so the tone survives
+  // on a destructive control while reusing the exemption class already accepted
+  // for text-danger — one accepted exemption instead of three new ones.
+  {
+    foreground: 'text-danger',
+    background: 'danger-subtle-active',
+    light: acceptBelow('AA', BRAND_FOREGROUND_ON_WHITE),
+    dark: requireLevel('AA'),
+  },
 
   // Focus indicator (SC 1.4.11, non-text 3.0) — brand cyan on white is below
   // the bar (accepted, mitigated at Input); on dark it clears it.
@@ -320,6 +342,24 @@ export const PAIRS: Pair[] = [
     light: acceptBelow('UI', BRAND_FOCUS_RING),
     dark: requireLevel('UI'),
   },
+
+  // The focus indicator that actually carries SC 1.4.11. Unlike the cyan ring
+  // above, this one is REQUIRED to clear the bar in both modes — it is the
+  // indicator of record, and a control's focus state cannot rest on an exemption.
+  // Measured against both surfaces a focused control sits on, because the ring is
+  // drawn outside the control (2px offset), on the page rather than on the fill.
+  {
+    foreground: 'ring-focus-strong',
+    background: 'surface-base',
+    light: requireLevel('UI'),
+    dark: requireLevel('UI'),
+  },
+  {
+    foreground: 'ring-focus-strong',
+    background: 'surface-raised',
+    light: requireLevel('UI'),
+    dark: requireLevel('UI'),
+  },
 ];
 
 /**
@@ -330,7 +370,6 @@ export const PAIRS: Pair[] = [
 export const IGNORED: Record<string, string> = {
   'surface-sunken':
     'recessed fill; only ever seats text-primary, which clears contrast on it by a wide margin',
-  'surface-hover': 'transient hover fill; the text on it is unchanged from its resting surface',
   'surface-muted': 'covered as a surface in the text-disabled pairs',
   'accent-solid-disabled': 'disabled fill; any label on it is text-disabled, which WCAG exempts',
   'danger-solid-disabled': 'disabled fill; any label on it is text-disabled, which WCAG exempts',

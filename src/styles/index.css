@@ -141,6 +141,13 @@
   --line-height-22: 1.375rem; /* 22px */
   --line-height-18: 1.125rem; /* 18px */
 
+  /* ── Layer 1 · radius primitives ─────────────────────────────────────────
+   * Figma draws every control at 4px and the IconButton at 100px — a value
+   * chosen to exceed half the largest square (40px), i.e. "however round it
+   * takes to be a circle". Transcribed as an effect, not the literal 100. */
+  --radius-4: 0.25rem; /* 4px */
+  --radius-max: 9999px;
+
   /* ── Layer 1 · elevation primitives — every level is a double shadow ──────
    * 8-digit hex keeps the alpha exactly as Figma specifies (no rounding). */
   --elevation-1: 0 2px 4px #0000000a, 0 1px 1px #00000005;
@@ -162,6 +169,7 @@
   --color-surface-sunken: var(--neutral-100); /* recessed well */
   --color-surface-muted: var(--neutral-200); /* disabled control fill */
   --color-surface-hover: var(--neutral-100); /* ghost/row hover */
+  --color-surface-active: var(--neutral-300); /* ghost/row pressed — one step past hover */
 
   /* Text / foreground */
   --color-text-primary: var(--neutral-700); /* body, headings */
@@ -180,22 +188,33 @@
   --color-border-focus: var(--primary-600); /* focus outline colour */
   --color-border-danger: var(--danger-600); /* invalid field border */
 
-  /* Accent (Primary) — Button primary: 600 / 500 hover / 700 active / 300 disabled */
+  /* Accent (Primary) — Button primary: 600 / 500 hover / 700 active / 300 disabled.
+   * There is deliberately NO accent-subtle: the extracted Button shows the accent
+   * ghost wash is NEUTRAL (surface-hover / surface-active), not a brand tint. Only
+   * the danger tone tints its wash. See docs/decisions.md. */
   --color-accent-solid: var(--primary-600);
   --color-accent-solid-hover: var(--primary-500); /* hover lightens (source) */
   --color-accent-solid-active: var(--primary-700); /* active darkens (source) */
   --color-accent-solid-disabled: var(--primary-300);
-  --color-accent-subtle: var(--primary-100); /* tinted background */
 
-  /* Danger (full states — Danger is a real Button variant) */
+  /* Danger (full states — Danger is a Button *tone*, applied across all variants) */
   --color-danger-solid: var(--danger-600);
   --color-danger-solid-hover: var(--danger-500);
   --color-danger-solid-active: var(--danger-700);
   --color-danger-solid-disabled: var(--danger-300);
-  --color-danger-subtle: var(--danger-100);
+  --color-danger-subtle: var(--danger-100); /* danger ghost hover wash */
+  /* Danger ghost PRESSED. Figma draws danger-300, which seats the danger-700 label
+   * at 2.97 — under even the 3.0 non-text floor. One step lighter reaches 3.69 and
+   * still reads as a distinct press (ΔE 3.7 from the hover wash). See a11y. */
+  --color-danger-subtle-active: var(--danger-200);
 
   /* Focus ring (Input focus 500/600) — brand conflict vs SC 1.4.11, see a11y */
   --color-ring-focus: var(--primary-500);
+  /* The focus indicator that actually carries SC 1.4.11. Cyan cannot: it measures
+   * 1.88–2.12 on white against a 3.0 bar. A neutral ring clears it on every surface
+   * a control sits on, including the cyan fill itself. Cyan stays available as a
+   * decorative inner ring (Input), never as the sole indicator. */
+  --color-ring-focus-strong: var(--neutral-700);
 
   /* ── Layer 2 · typography — size + line-height, headings carry weight ─────
    * H1–Title are Medium (500) in the source, so weight is baked. Subtitle /
@@ -227,6 +246,15 @@
 
   --text-caption: var(--font-size-12);
   --text-caption--line-height: var(--line-height-18);
+
+  /* ── Layer 2 · radius ─────────────────────────────────────────────────
+   * Named for intent, not for a step on someone else's scale. Tailwind's own
+   * `rounded-sm` is 4px today, but that is a coincidence: it names a FRAMEWORK
+   * value, so if the design moved to 6px it would keep compiling while meaning
+   * the wrong thing. `radius-control` also declares that Button and Dialog share
+   * a decision rather than happening to agree. */
+  --radius-control: var(--radius-4);
+  --radius-full: var(--radius-max);
 
   /* ── Layer 2 · elevation ─────────────────────────────────────────────── */
   --shadow-elevation-1: var(--elevation-1);
@@ -262,17 +290,27 @@
   --color-surface-muted: var(--neutral-600); /* disabled fill (text-disabled is exempt) */
   --color-surface-hover: var(--neutral-600); /* transient hover — carries no required text */
 
+  /* PRESSED goes DARKER in dark mode, the opposite of light. Not a stylistic
+   * choice — the ramp forces it. Hover already occupies neutral-600 (#4B4B4B) and
+   * the next step up is neutral-500 (#8E8E8E), which seats the neutral-50 label at
+   * 3.14 and the danger-300 label at 2.31: both fail. Black clears them at 20.12 /
+   * 14.82 and reads as a deeper recess (ΔE 31.9 from hover). Same shallow dark end
+   * of the neutral ramp that makes elevation a border here. See a11y. */
+  --color-surface-active: var(--black);
+  --color-danger-subtle-active: var(--black);
+
+  --color-ring-focus-strong: var(--neutral-50); /* the ring inverts; cyan still can't carry it */
+
   --color-text-primary: var(--neutral-50);
   --color-text-secondary: var(--neutral-300);
   --color-text-disabled: var(--neutral-500);
   --color-text-accent: var(--primary-400); /* brighter cyan reads on dark (and passes AA) */
   --color-text-danger: var(--danger-300); /* lighter red seats on both the surface and the wash */
 
-  /* The ramp has no dark chromatic tint, so the subtle brand surfaces degrade
-   * to a neutral hover wash in dark; a ghost control's brand identity is then
-   * carried by its text/border, not its fill. A documented palette limitation,
-   * flagged in docs/accessibility.md — not a value invented to fill the gap. */
-  --color-accent-subtle: var(--neutral-600);
+  /* The ramp has no dark chromatic tint, so the subtle brand surface degrades to a
+   * neutral hover wash in dark; a ghost control's brand identity is then carried by
+   * its text, not its fill. A documented palette limitation, flagged in
+   * docs/accessibility.md — not a value invented to fill the gap. */
   --color-danger-subtle: var(--neutral-600);
 
   --color-border-subtle: var(--neutral-600);
