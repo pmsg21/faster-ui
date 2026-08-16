@@ -23,7 +23,40 @@ the argument that decided `IconButton` should be its own component rather than a
 The pattern to reach for: when a rule matters, ask what makes breaking it impossible
 before writing it down. Documentation is the fallback, not the first answer.
 
-## Variant axes: orthogonal, until the source says otherwise
+## Two component shapes, and knowing which one you have
+
+Everything below about variant axes and compound tables came out of `Button`. `Input`
+does not fit it, and that is not a flaw in either component — they are different shapes,
+and recognising which one you are holding decides where the work actually is.
+
+**Shape one: the specification is a class matrix.** `Button` and `IconButton`. The hard
+part is colour across `variant × tone × state`, the `cva` is most of the component, and
+the review question is "does every cell match the source?" Behaviour is small and mostly
+shared.
+
+**Shape two: the specification is behaviour.** `Input`. Its `cva` is the _small_ part.
+The hard part is `useId` wiring, `aria-describedby` assembly and its order, deriving
+state from props rather than accepting it, focus management around a control that
+unmounts, and a nested interactive child. There is no compound table because there is
+nothing to compound — one axis, `size`.
+
+The tell is in the Figma file, and it is counter-intuitive: **`Input` has the larger
+matrix — 237 components against Button's 12 — and the smaller `cva`.** A large variant
+count is not evidence of a large style map. It usually means the design tool is drawing
+runtime state, because drawing every combination is the only way a design tool _can_
+express state. The bigger the matrix, the harder to look past it, and the more likely
+that most of it is behaviour.
+
+So the first question on a new component is which shape it is, because it decides what to
+be careful about. On shape one, mis-transcribing a cell ships a wrong colour. On shape
+two, the equivalent mistake ships a control that a screen reader cannot describe — and no
+amount of matrix-checking would have caught it.
+
+`Dialog` is the third and looks like shape two again: focus trapping, restoration,
+`aria-modal`, escape handling and scroll locking are all behaviour, and its visual
+specification is close to one surface with one border.
+
+## How many variant axes: as many as the source has, and no more
 
 `Button` has `variant` (emphasis) and `tone` (intent) as separate axes, mirroring the two
 parallel frames in Figma. Flattening them into one `variant` would mean eight values now
@@ -34,10 +67,19 @@ But the axes are **not independent**, and the code says so out loud: the colours
 outline is already coloured, and the accent ghost wash is neutral where the danger one is
 tinted. Danger is not a hue swap of accent.
 
-The lesson for the next component: orthogonal axes are the right default for the API
-surface, and a compound table is the right place to admit where reality is not
-orthogonal. Do not force the matrix to be regular by inventing values the design does not
-have.
+`Input` is the counter-case, and it is why this section is not called "axes are
+orthogonal". It has **one** axis. The Figma page models `Size`, `State`, `Typing`,
+`Text Entered` and `State 2` across 237 components, and four of those five are runtime
+state: `State` is `:hover` / `:focus-visible` / the `error` prop / the `disabled`
+attribute, `Text Entered` is whether the field has a value, `Typing` is a focused field
+with a caret, and `State 2` is the clear button's own hover and pressed state. Mirroring
+them as props would have shipped a design-tool modelling artefact as public API.
+
+So the rule is not "prefer orthogonal axes" — it is **take the number of axes from the
+source, and be suspicious in both directions.** Flattening two real axes into one costs
+you eight values now and sixteen later; inflating runtime state into props costs you a
+component nobody can use correctly. Do not force the matrix to be regular by inventing
+values the design does not have, and do not assume a large matrix means a large API.
 
 **Internal axes stay internal.** `footprint` (`label` / `icon`) is a `cva` variant that is
 not a public prop — it distinguishes the space the control occupies, which the consumer
@@ -127,6 +169,22 @@ discipline the token layer applies: no public API ahead of evidence.
 it" is not evidence — everything missing from a design system is a common need for
 somebody.
 
+**No `readOnly` prop on `Input`.** The design draws no read-only state, and it already
+passes through from `InputHTMLAttributes`. A prop would be API surface for a state nobody
+specified.
+
+**No `Number` stepper and no filled prefix/suffix addon segments**, though both are fully
+extracted. The brief asks for "Input" and enumerates exactly the five states the Figma
+`State` axis carries; neither appears in it. The stepper is also the one place where the
+design and a criterion genuinely conflict — at `sm` the field is 24px tall, so two stacked
+buttons cannot both clear the 24×24 of SC 2.5.8 without redrawing the control. Building it
+would have minted the register's first unresolvable row for capability nobody requested.
+Full reasoning in [decisions.md](decisions.md).
+
+The pattern across all five: **"extracted, specified, deliberately not shipped" is a
+stronger position than a half-built control**, and it only works if the extraction really
+was done and really is written down.
+
 ## Sizing guidance worth repeating to consumers
 
 `sm` sits **exactly** on the SC 2.5.8 floor of 24×24 with no margin. It is for
@@ -137,6 +195,12 @@ scale tweak or browser rounding would drop it below without anyone noticing.
 The hit area is deliberately **not** extended beyond the visual box: an invisible 44px
 target on a 24px control in a toolbar overlaps its neighbours, and an overlapping target
 is worse than a small one.
+
+**A glyph size and a target size are different numbers.** `Input`'s clear control draws at
+16 / 14 / 12 px, exactly as the source specifies, but its _button_ is 24×24 at every size.
+At `sm` that makes the control as tall as the field itself, which looks like an accident
+and is not: a 12px hit area fails SC 2.5.8 outright. Transcribe the glyph from the design;
+take the target from the criterion.
 
 ## Testing
 

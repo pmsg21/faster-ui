@@ -4,11 +4,12 @@ A small, production-ready design system: `Button`, `Input`, `Dialog`.
 
 React · TypeScript · Tailwind CSS v4 · Storybook · Jest · Cypress · GitHub Actions
 
-> **Status:** tokens and `Button` implemented. `Input` and `Dialog` are next.
+> **Status:** the token layer, `Button`, `IconButton` and `Input` ship in **0.2.0**.
+> `Dialog` is next.
 
 **Live Storybook:** https://pmsg21.github.io/faster-ui/ · **npm:** [`@pmsg21/faster-ui`](https://www.npmjs.com/package/@pmsg21/faster-ui)
 
-## Read this first: the buttons don't look exactly like the mock
+## Read this first: the components don't look exactly like the mock
 
 Open Storybook next to the Figma file and the difference is immediate — **the primary
 button ships a dark label on the cyan fill, not a white one.** White on the brand cyan
@@ -16,12 +17,21 @@ measures **2.12:1** where WCAG requires 4.5:1, and no step of the cyan ramp is d
 enough to fix it. A near-black label on the same cyan measures **7.78:1**. The cyan
 itself is untouched.
 
-That is one of **seven** differences, each measured against a specific WCAG criterion:
-six changes and one addition (the file draws no focus state). Colour fixes land in the
-semantic token layer and never touch a primitive; two are component-level and touch no
-token at all. **No Figma value was edited** — every one stays traceable to its source
-node, and every ratio is recomputed from the shipped tokens on each CI run, so the
-record cannot drift from the code.
+`Input` has its own version of the same problem: the placeholder is drawn at a grey that
+measures **1.64:1**, and darkening only the placeholder would have made it identical to
+the value and erased the difference between an empty field and a filled one — so both
+move one step and the design's _relationship_ survives.
+
+Those are two of **ten** differences across the three shipped components, each measured
+against a specific WCAG criterion: eight are changes to something the file draws, and two
+are **additions** where it draws nothing at all — a focus state, and a visible label.
+Fixes land either in the semantic token layer or in the component; **no primitive is ever
+edited**, so every Figma value stays traceable to its source node. Every ratio is
+recomputed from the shipped tokens on each CI run, so the record cannot drift from the code.
+
+A row is a **decision, not an occurrence** — a later component re-applying an earlier
+decision extends that row instead of adding one. The count per component is falling:
+seven, then zero, then three.
 
 The full register, with the alternatives measured and rejected, is in
 **[docs/design-fidelity.md](docs/design-fidelity.md)**. Each component's Storybook
@@ -35,17 +45,23 @@ pnpm install
 pnpm dev          # Storybook at http://localhost:6006
 ```
 
-| Command             | What it does                         |
-| ------------------- | ------------------------------------ |
-| `pnpm dev`          | Storybook dev server                 |
-| `pnpm test`         | Jest + React Testing Library         |
-| `pnpm cypress:open` | Cypress component tests, interactive |
-| `pnpm cypress:run`  | Cypress component tests, headless    |
-| `pnpm lint`         | ESLint (flat config)                 |
-| `pnpm format`       | Prettier                             |
-| `pnpm typecheck`    | `tsc --noEmit`                       |
-| `pnpm build`        | Build the distributable library      |
-| `pnpm changeset`    | Record a change for the next release |
+| Command                | What it does                         |
+| ---------------------- | ------------------------------------ |
+| `pnpm dev`             | Storybook dev server                 |
+| `pnpm test`            | Jest + React Testing Library         |
+| `pnpm cypress:open`    | Cypress component tests, interactive |
+| `pnpm cypress:run`     | Cypress component tests, headless    |
+| `pnpm lint`            | ESLint (flat config)                 |
+| `pnpm format`          | Prettier                             |
+| `pnpm typecheck`       | `tsc --noEmit`, twice — see below    |
+| `pnpm test:ci`         | Jest with coverage, as CI runs it    |
+| `pnpm build`           | Build the distributable library      |
+| `pnpm build-storybook` | Static Storybook, as CI builds it    |
+| `pnpm changeset`       | Record a change for the next release |
+
+`typecheck` runs **two** TypeScript programs: the library, and Cypress. Jest and Cypress
+each declare an incompatible global `expect`, so compiling both in one program makes the
+Jest setup file fail to type-check ([docs/decisions.md](docs/decisions.md)).
 
 ## Why pnpm
 
@@ -70,8 +86,12 @@ any project, on any version, or none.
 ```js
 import '@pmsg21/faster-ui/styles.css';
 
-import { Button } from '@pmsg21/faster-ui';
+import { Button, IconButton, Input } from '@pmsg21/faster-ui';
 ```
+
+`0.2.0` exports exactly those three components and their prop types — nothing else. The
+public surface is pinned by a test, so neither an accidental export nor an accidental
+omission can merge quietly.
 
 The stylesheet carries the design tokens and the component classes. It deliberately
 carries **no CSS reset**: installing three components should not restyle your
@@ -111,10 +131,17 @@ code, and not in repo or environment secrets.
    updates `CHANGELOG.md`. A maintainer approves and merges it — a deliberate
    human checkpoint before a version reaches consumers (see
    [docs/decisions.md](docs/decisions.md)).
-3. That merge publishes to npm via **OIDC trusted publishing**: GitHub Actions
+3. **Before approving that PR, check this README still describes what is about to
+   ship** — the status line, the component list and the divergence count. The process
+   already guarantees `CHANGELOG.md` is accurate; this is the step that guarantees the
+   _page the changelog appears on_ is accurate too. A stale README is wrong on npmjs.com
+   until somebody publishes again, which is a longer blast radius than any internal doc
+   going stale.
+4. That merge publishes to npm via **OIDC trusted publishing**: GitHub Actions
    proves its identity to npm directly, so no `NPM_TOKEN` is needed. Every
    release ships a signed **provenance attestation** linking the tarball to the
-   exact commit and workflow run.
+   exact commit and workflow run — recorded per version in
+   [docs/release-verification.md](docs/release-verification.md).
 
 ## Conventions
 
