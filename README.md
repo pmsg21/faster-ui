@@ -4,9 +4,8 @@ A small, production-ready design system: `Button`, `Input`, `Dialog`.
 
 React · TypeScript · Tailwind CSS v4 · Storybook · Jest · Cypress · GitHub Actions
 
-> **Status:** the token layer, `Button`, `IconButton` and `Input` ship in **0.2.0**, the
-> currently published version. `Dialog` is complete on `main` and ships in the next
-> release, which completes the brief.
+> **Status:** complete. The token layer, `Button`, `IconButton`, `Input` and `Dialog` all
+> ship in **0.3.0**, which fulfils the brief.
 
 **Live Storybook:** https://pmsg21.github.io/faster-ui/ · **npm:** [`@pmsg21/faster-ui`](https://www.npmjs.com/package/@pmsg21/faster-ui)
 
@@ -99,9 +98,9 @@ import '@pmsg21/faster-ui/styles.css';
 import { Button, Dialog, IconButton, Input } from '@pmsg21/faster-ui';
 ```
 
-The published `0.2.0` exports `Button`, `IconButton` and `Input`; `Dialog` joins them in
-the next release. The public surface is pinned by a test in both runners, so neither an
-accidental export nor an accidental omission can merge quietly.
+`0.3.0` exports exactly those four components and their prop types — nothing else. The
+public surface is pinned by a test in **both** runners, so neither an accidental export nor
+an accidental omission can merge quietly.
 
 ### Browser support
 
