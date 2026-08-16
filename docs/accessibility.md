@@ -163,9 +163,29 @@ session sees it first.
 ## Verified by hand, because no gate can
 
 Everything above is measured by machine. This section records what was checked by a
-person, on `Button` and `IconButton`, before the PR opened — kept separately because
-none of it is re-run on any commit, and an unwritten manual check is indistinguishable
-from one that never happened.
+person, before each PR opened — kept separately because none of it is re-run on any
+commit, and an unwritten manual check is indistinguishable from one that never happened.
+
+### `Input`
+
+Hand-testing found **one** thing, and it was not in the component. Every error story was
+reporting a **Serious** `color-contrast` violation in Storybook's Accessibility panel:
+`content-danger` on white at 4.21, which is the exemption already recorded as register
+row 4. The component was correct; the panel was correct; nothing connected them.
+
+The finding is that **the same violation had been standing on `Button`'s danger stories
+since `Button` shipped** — through that component's own hand-test pass — because the CI
+gate was satisfied by a declared exemption and the panel was reporting honestly to nobody.
+Two verifications that looked like one. It led to the three-kinds restructuring in
+[patterns.md](patterns.md), and to `CLAUDE.md`'s hand-test rule now naming the panel
+explicitly.
+
+Everything else on the uncertainty list behaved correctly: the `neutral-50` disabled fill
+does read as disabled rather than broken, the 24×24 clear target at `sm` is not ugly, the
+doubled focus treatment (cyan inner border plus neutral offset ring) reads as deliberate
+in both modes, and the one-ramp-step gap between placeholder and value stays perceptible.
+
+### `Button` and `IconButton`
 
 **Screen-reader announcement.** Every variant and state was exercised with a screen
 reader. The three that carry information beyond the label:

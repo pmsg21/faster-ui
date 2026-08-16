@@ -204,10 +204,11 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - [docs/decisions.md](docs/decisions.md) — the "why" record (pnpm vs npm CLI,
   `@theme` vs `inline`, Cypress's own TS program, two `tsc -p`, `pre-push` scope).
 - [docs/patterns.md](docs/patterns.md) — the working detail extracted from what was
-  actually built: the guardrail principle, variant axes, the two-audience
-  vocabulary rule, deliberate omissions, sizing guidance, and the testing patterns
-  (Jest/Cypress split, the hover-transition false-green, real keyboard events,
-  harness sanity checks, component-scoped axe).
+  actually built: the guardrail principle, **the two component shapes**, how many variant
+  axes a component gets, the `cva`-in-its-own-file rule, native attribute-name collisions,
+  the two-audience vocabulary rule, deliberate omissions, sizing guidance, and the testing
+  patterns (Jest/Cypress split, the hover-transition false-green, real keyboard events,
+  harness sanity checks, and the three kinds of axe configuration).
 - [docs/design-fidelity.md](docs/design-fidelity.md) — every place a shipped
   component differs from the Figma file, each with its measured ratio and criterion,
   split per component as well as listed in full. A row is a **decision**, not an
@@ -247,7 +248,8 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   [docs/decisions.md](docs/decisions.md)). Seven design-fidelity divergences recorded.
   Two defects that every gate passed were found by hand-testing — the missing `Fillet`
   capability and an inherited-but-wrong `outline` interaction model.
-- **Done — `Input`.** Seven Figma component sets and 237 components reduced to **one**
+- **Done — `Input` (merged via #11), released as `@pmsg21/faster-ui@0.2.0` — the current
+  published version.** Seven Figma component sets and 237 components reduced to **one**
   public axis (`size`): `State`, `Typing`, `Text Entered` and `State 2` are all runtime.
   `label` is required so a nameless field cannot compile; `disabled` uses the **native**
   attribute, deliberately unlike `Button`, because under `aria-disabled` the value still
@@ -299,6 +301,15 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   rather than the pseudo-element's cascade, so the painted placeholder cannot be read from a
   component test. The emitted rule is correct and was checked by hand in the compiled CSS.
   Visual regression is what closes this properly.
+- **Every GitHub Action in both workflows targets Node 20, which is deprecated.** Runs
+  currently succeed with an annotation — GitHub is forcing them onto Node 24 — and that
+  becomes a hard failure when the fallback is withdrawn. Affected:
+  `actions/checkout@v4`, `actions/setup-node@v4`, `pnpm/action-setup@v4`,
+  `actions/configure-pages@v5`, `actions/deploy-pages@v4`, `actions/upload-artifact@v4`.
+  **This predates `Input` and is unrelated to any component work**, so it belongs in its own
+  `chore:` PR bumping the action majors — not folded into a component branch. Written down
+  because the failure mode is time: if the repository sits for a few weeks, a green pipeline
+  turns red on its own and the next session has no way to know it was seen coming.
 - **One axe engine, held there by a `pnpm.overrides` entry.** `jest-axe`, `cypress-axe` and
   `@storybook/addon-a11y` all resolve `axe-core@4.13.0`. They did not: the addon declares
   its own `^4.2.0` and had drifted a minor ahead of the gates, so the panel a reviewer reads
@@ -322,9 +333,13 @@ enforce — they land when the component is built. Full detail in
 overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is imperceptible
   (`elevation-4` ≈ 1.05:1). **Dialog/popover must carry a visible border in dark** —
   nothing else separates an elevated surface from the page.
-- **Focus-ring visibility (Input).** The brand cyan ring is below SC 1.4.11 on white
-  (≤2.12:1). Input completes focus with a neutral offset/halo, not the cyan alone.
-- **Non-text border contrast (Input) — narrower than first written.** The earlier
+- **Focus-ring visibility (Input)** — _discharged by `Input`._ The brand cyan ring is below
+  SC 1.4.11 on white (≤2.12:1). A focused field carries **both**: `line-focus` (cyan) on the
+  inner border, which is what the design draws, and `focus-strong` (neutral, 2px at 2px
+  offset) as the indicator that actually satisfies the criterion. The design's other
+  affordance — a 16%-alpha cyan halo — is not shipped, and its token was removed.
+- **Non-text border contrast (Input) — _discharged by `Input`_, and narrower than first
+  written.** The earlier
   version of this entry said `line-subtle`, `line-default` _and_ `line-danger` all
   measure below 3:1 on white. Measured from the shipped tokens, that is wrong for the
   third:
@@ -342,6 +357,9 @@ overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is impercept
   (required visible label, fill, focus treatment) therefore has to carry default and
   hover, and is verified in the component's own tests. A known-gap that overstates its
   scope misdirects the work as surely as one that misses.
+
+  How it was discharged: `label` is a **required** prop, so a field is always identifiable by
+  something other than its box, and a nameless one does not compile.
 
 - **Ghost/link button labels use a neutral foreground** — _discharged by `Button`._ Cyan
   fails AA on white (2.12), so non-solid labels ship `content-secondary` darkening to
