@@ -66,11 +66,30 @@ export const ACCEPTED_CONTRAST_ATTRIBUTE = 'data-a11y-accepted-contrast';
  */
 export type FidelityRegisterRow = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
+/**
+ * Where the decision behind an exemption is written down.
+ *
+ * The first version of this type assumed every accepted contrast exemption corresponded
+ * to a **divergence** row, and required one. That held while there was a single
+ * exemption, and `Dialog` broke it: its warning glyph measures 1.87 and is accepted, but
+ * nothing diverges — the design draws `warning-600` and we ship `warning-600`. The ramp
+ * simply has no compliant step.
+ *
+ * So an exemption and a divergence are different claims, and forcing them into one field
+ * would have meant minting a fidelity row to describe a place we changed nothing —
+ * inflating the register, which is the exact dilution the register warns about. The
+ * union keeps both linkable and keeps neither optional: an exemption still cannot exist
+ * without saying where it is recorded.
+ */
+export type ExemptionRecord =
+  | { kind: 'fidelity-row'; row: FidelityRegisterRow }
+  | { kind: 'accessibility-record'; heading: string };
+
 export interface AcceptedContrastExemption {
   /** The measured ratio, e.g. `4.21`. Required — an exemption without a number is a guess. */
   ratio: number;
-  /** The row in docs/design-fidelity.md that records this decision. */
-  registerRow: FidelityRegisterRow;
+  /** Where this decision is recorded. Required — see `ExemptionRecord`. */
+  recordedIn: ExemptionRecord;
   /** Why the ratio is accepted rather than fixed. */
   reason: string;
   /**
@@ -96,17 +115,52 @@ export interface AcceptedContrastExemption {
  */
 export const CONTENT_DANGER_ON_WHITE = {
   ratio: 4.21,
-  registerRow: 4,
+  recordedIn: { kind: 'fidelity-row', row: 4 },
   reason:
     'Red carries meaning on a destructive control and on an error message, and `danger-700` ' +
     'is the darkest step the ramp offers — there is no compliant red available. Neutralising ' +
     'it would remove the signal from the people most likely to depend on it.',
 } as const satisfies Omit<AcceptedContrastExemption, 'exemptSelector'>;
 
-function exemptionNote({ ratio, registerRow, reason }: AcceptedContrastExemption): string {
+/**
+ * `Dialog`'s warning glyph — the first exemption with **no divergence behind it**.
+ *
+ * `warning-600` measures 1.87 on the dialog surface and no step of the ramp clears the
+ * 3:1 of SC 1.4.11 (`warning-700` reaches only 2.12). It is accepted rather than fixed
+ * because the criterion governs graphics **required to understand the content**, and
+ * this one is not: the body text explains the warning, the destructive action names it,
+ * and `role="alertdialog"` announces it.
+ *
+ * That reasoning rests entirely on the glyph being `aria-hidden`. Expose it to assistive
+ * technology and it stops being decorative, the criterion applies, and this exemption
+ * evaporates — so the `aria-hidden` is asserted in `Dialog.test.tsx` rather than left as
+ * an implementation detail. An exemption whose premise is untested is a number somebody
+ * wrote down.
+ */
+export const CONTENT_WARNING_ON_OVERLAY = {
+  ratio: 1.87,
+  recordedIn: { kind: 'accessibility-record', heading: 'Palette limitations worth naming' },
+  reason:
+    'The glyph is decorative and `aria-hidden` (asserted in Dialog.test.tsx): the body text, ' +
+    'the destructive action and `role="alertdialog"` all carry the meaning, and SC 1.4.11 ' +
+    'governs graphics *required* to understand the content. No step of the warning ramp clears ' +
+    '3:1 on white — `warning-700` reaches only 2.12 — so this is a palette limit, not a mapping ' +
+    'mistake. Nothing diverges: the design draws this colour and we ship it.',
+} as const satisfies Omit<AcceptedContrastExemption, 'exemptSelector'>;
+
+const DOCS_BASE = 'https://github.com/pmsg21/faster-ui/blob/main/docs';
+
+function recordCitation(record: ExemptionRecord): string {
+  return record.kind === 'fidelity-row'
+    ? `Recorded as row ${record.row} of [docs/design-fidelity.md](${DOCS_BASE}/design-fidelity.md)`
+    : `Recorded under "${record.heading}" in [docs/accessibility.md](${DOCS_BASE}/accessibility.md) — ` +
+        `an accepted exemption with **no** divergence, because the design's own value is what fails`;
+}
+
+function exemptionNote({ ratio, recordedIn, reason }: AcceptedContrastExemption): string {
   return (
     `**Accepted contrast exemption — ${ratio}:1.** ${reason} ` +
-    `Recorded as row ${registerRow} of [docs/design-fidelity.md](https://github.com/pmsg21/faster-ui/blob/main/docs/design-fidelity.md), ` +
+    `${recordCitation(recordedIn)}, ` +
     `and pinned by the contrast contract, which fails if the ratio drifts in **either** direction. ` +
     `\`color-contrast\` stays **on** for this story; only the marked region is excluded, so any ` +
     `other contrast failure here is still reported.`
