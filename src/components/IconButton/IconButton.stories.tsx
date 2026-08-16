@@ -55,6 +55,11 @@ const meta = {
       options: ['sm', 'md', 'lg'],
       description: 'Small / Medium / Large — 24 / 36 / 40px square.',
     },
+    shape: {
+      control: 'inline-radio',
+      options: ['round', 'square'],
+      description: 'Figma calls this **Fillet**. Only the icon button has it.',
+    },
     disabled: { control: 'boolean' },
     loading: { control: 'boolean' },
     'aria-label': { control: 'text', description: 'Required. The control has no visible name.' },
@@ -65,6 +70,7 @@ const meta = {
     icon: <PlusIcon />,
     variant: 'primary',
     size: 'md',
+    shape: 'round',
     disabled: false,
     loading: false,
     onClick: fn(),
@@ -155,6 +161,32 @@ export const AllVariants: Story = {
       <IconButton {...args} variant="primary" aria-label="Add item" icon={<PlusIcon />} />
       <IconButton {...args} variant="outline" aria-label="Add item" icon={<PlusIcon />} />
       <IconButton {...args} variant="ghost" aria-label="Add item" icon={<PlusIcon />} />
+    </div>
+  ),
+};
+
+export const Shape: Story = {
+  name: 'Shape (Fillet)',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Figma calls this axis **Fillet**, and scopes it explicitly: *"Only the icon button ' +
+          'can be set to a round button."* So it lives on `IconButton` and not on `Button`.\n\n' +
+          'It needed no new tokens — `round` is `radius-full`, `square` is `radius-control`, ' +
+          'the same radius `Button` already uses. Shape changes the corner only: a ' +
+          'square-cornered icon button is still exactly square, not a wide pill.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className="flex flex-wrap items-center gap-6">
+      {(['round', 'square'] as const).map((shape) => (
+        <div key={shape} className="grid justify-items-center gap-2">
+          <IconButton {...args} shape={shape} aria-label={`${shape} add`} icon={<PlusIcon />} />
+          <span className="text-caption text-content-secondary">{shape}</span>
+        </div>
+      ))}
     </div>
   ),
 };

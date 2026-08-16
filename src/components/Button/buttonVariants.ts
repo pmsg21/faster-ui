@@ -58,12 +58,22 @@ export const buttonVariants = cva(
         lg: 'min-h-10 min-w-[6.625rem] px-2 text-subtitle',
       },
       /**
-       * Internal — never a public prop. `box` is the labelled button; `square`
-       * is IconButton, which the source draws as a circle at every size.
+       * Internal — never a public prop. What it distinguishes is the space the
+       * control occupies: a box carrying a label, or a square holding one glyph.
+       */
+      footprint: {
+        label: 'rounded-control',
+        icon: 'p-0',
+      },
+      /**
+       * PUBLIC on IconButton only. The design documents this in prose rather than
+       * as a variant property — "Only the icon button can be set to a round
+       * button" — which is why it is meaningless for a labelled button and is
+       * applied through the compound entries below.
        */
       shape: {
-        box: 'rounded-control',
-        square: 'rounded-full p-0',
+        round: '',
+        square: '',
       },
     },
 
@@ -73,10 +83,17 @@ export const buttonVariants = cva(
       { size: 'md', class: '[&_[data-slot=icon]]:size-4' },
       { size: 'lg', class: '[&_[data-slot=icon]]:size-[1.125rem]' },
 
-      // ── IconButton geometry: square, no min-width, centred glyph ──────────
-      { shape: 'square', size: 'sm', class: 'size-6 min-h-6 min-w-6' },
-      { shape: 'square', size: 'md', class: 'size-9 min-h-9 min-w-9' },
-      { shape: 'square', size: 'lg', class: 'size-10 min-h-10 min-w-10' },
+      // ── IconButton geometry: square footprint, no min-width, centred glyph ──
+      { footprint: 'icon', size: 'sm', class: 'size-6 min-h-6 min-w-6' },
+      { footprint: 'icon', size: 'md', class: 'size-9 min-h-9 min-w-9' },
+      { footprint: 'icon', size: 'lg', class: 'size-10 min-h-10 min-w-10' },
+
+      // ── The Fillet axis, icon footprint only ─────────────────────────────
+      // Both radii already existed: `radius-full` for the circle the component
+      // set draws by default, and `radius-control` — the exact radius Button
+      // uses — for the square form the documentation describes.
+      { footprint: 'icon', shape: 'round', class: 'rounded-full' },
+      { footprint: 'icon', shape: 'square', class: 'rounded-control' },
 
       // ── Link geometry ────────────────────────────────────────────────────
       // A Figma frame height (18 / 22 / 24) is the text's bounding box, not a
@@ -191,7 +208,10 @@ export const buttonVariants = cva(
       variant: 'primary',
       tone: 'accent',
       size: 'md',
-      shape: 'box',
+      footprint: 'label',
+      // Round, because that is what the component set draws; square is the
+      // documented alternative, not the base.
+      shape: 'round',
     },
   }
 );

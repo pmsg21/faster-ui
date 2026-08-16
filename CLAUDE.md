@@ -36,6 +36,17 @@ noise.
 values at build time and freezes `bg-surface-base` at its light value under
 `[data-theme='dark']`.
 
+**A variant matrix is not the whole specification.** Before treating a component as
+specified, **read the page's text nodes, not only its component sets.** Capabilities
+live in section prose, in instance overrides, and in documentation frames that carry
+no variant property at all — and an extraction that walks the component sets reports
+success while missing every one of them. It has already happened three times: the
+Overview section definitions, the `Fillet` round/square capability on `IconButton`
+(documented in three section descriptions, zero variant properties — see
+[docs/decisions.md](docs/decisions.md)), and it is the same shape as the gate
+failures below: a source that looks fully read because the part that _was_ read is
+complete.
+
 **Component completeness.** Not done until `X.tsx`, `X.test.tsx`, `X.cy.tsx`,
 `X.stories.tsx`, and `index.ts` all exist. Stories: one per variant and per state,
 a `Playground` with full controls, ≥1 edge case (long label/content). Tests:

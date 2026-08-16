@@ -43,6 +43,41 @@ describe('IconButton — rendering', () => {
   });
 });
 
+describe('IconButton — shape (the Figma Fillet axis)', () => {
+  // The design carries this as prose plus an instance override, not as a variant
+  // property, so an extraction that walks only the component set misses it — which
+  // is exactly what happened. See docs/decisions.md.
+  it('is round by default, matching what the component set draws', () => {
+    render(<IconButton aria-label="Add item" icon={<PlusIcon />} />);
+    expect(screen.getByRole('button')).toHaveClass('rounded-full');
+  });
+
+  it('takes the square corner when asked', () => {
+    render(<IconButton shape="square" aria-label="Add item" icon={<PlusIcon />} />);
+    const button = screen.getByRole('button');
+    // The same radius Button uses — no token was invented for this.
+    expect(button).toHaveClass('rounded-control');
+    expect(button).not.toHaveClass('rounded-full');
+  });
+
+  it.each(SIZES)('keeps the square corner at %s', (size) => {
+    render(<IconButton shape="square" size={size} aria-label="Add item" icon={<PlusIcon />} />);
+    expect(screen.getByRole('button')).toHaveClass('rounded-control');
+  });
+
+  it('stays square-footprinted in both shapes', () => {
+    // Shape changes the corner, never the box: a square-cornered icon button is
+    // still 36×36, not a wide pill.
+    for (const shape of ['round', 'square'] as const) {
+      const { unmount } = render(
+        <IconButton shape={shape} aria-label="Add item" icon={<PlusIcon />} />
+      );
+      expect(screen.getByRole('button')).toHaveClass('size-9');
+      unmount();
+    }
+  });
+});
+
 describe('IconButton — geometry comes from the shared matrix', () => {
   it('overrides the boxed radius, padding and min-width', () => {
     // The square classes are appended after Button's own and resolved by twMerge.

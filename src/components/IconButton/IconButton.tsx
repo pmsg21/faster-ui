@@ -9,9 +9,18 @@ import { buttonVariants } from '../Button/buttonVariants';
 /** No `link` — the Figma IconButton set has three variants, not four. */
 export type IconButtonVariant = 'primary' | 'outline' | 'ghost';
 
+/**
+ * Round or square corners. The design carries this as prose and an instance
+ * override rather than a variant property, and scopes it explicitly: "Only the
+ * icon button can be set to a round button." So it lives here and not on `Button`.
+ */
+export type IconButtonShape = 'round' | 'square';
+
 export interface IconButtonProps
   extends Omit<ButtonProps, 'variant' | 'tone' | 'startIcon' | 'endIcon' | 'children'> {
   variant?: IconButtonVariant;
+  /** Corner treatment. Defaults to `round`, which is what the component set draws. */
+  shape?: IconButtonShape;
   /** The glyph. Hidden from the accessible name — `aria-label` carries it. */
   icon: ReactNode;
   /**
@@ -46,7 +55,7 @@ export interface IconButtonProps
  * defaults. The floor is asserted in IconButton.cy.tsx, not merely documented.
  */
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { variant = 'primary', size = 'md', icon, className, ...rest },
+  { variant = 'primary', size = 'md', shape = 'round', icon, className, ...rest },
   ref
 ) {
   return (
@@ -56,7 +65,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       variant={variant}
       size={size}
       startIcon={icon}
-      className={cn(buttonVariants({ variant, size, shape: 'square' }), className)}
+      className={cn(buttonVariants({ variant, size, shape, footprint: 'icon' }), className)}
     />
   );
 });

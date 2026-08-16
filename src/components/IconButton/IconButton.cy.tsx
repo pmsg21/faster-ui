@@ -82,13 +82,26 @@ describe('IconButton — geometry', () => {
     });
   });
 
-  it('is fully rounded, as the source draws it', () => {
+  it('is fully rounded by default, as the source draws it', () => {
     mountOnSurface(<IconButton aria-label="Add item" icon={<PlusIcon />} />);
     cy.findByRole('button').should(($button) => {
       const radius = parseFloat(window.getComputedStyle($button[0]!).borderTopLeftRadius);
       const { height } = $button[0]!.getBoundingClientRect();
       // A circle, not a rounded square: the source specifies 100px on a 40px box.
       expect(radius).to.be.at.least(height / 2);
+    });
+  });
+
+  it('takes a 4px corner when square, and stays square', () => {
+    // Only a browser can tell "the class is present" from "the corner is 4px and
+    // the box is still 36×36" — a broken merge would leave both radii declared.
+    mountOnSurface(<IconButton shape="square" aria-label="Add item" icon={<PlusIcon />} />);
+    cy.findByRole('button').should(($button) => {
+      const radius = parseFloat(window.getComputedStyle($button[0]!).borderTopLeftRadius);
+      const { width, height } = $button[0]!.getBoundingClientRect();
+      expect(radius, 'corner radius').to.equal(4);
+      expect(width, 'width').to.equal(36);
+      expect(height, 'height').to.equal(36);
     });
   });
 });

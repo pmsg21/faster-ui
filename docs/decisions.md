@@ -235,6 +235,40 @@ predicts: declare what you import. `axe-core` is now an explicit devDependency, 
 to the version `jest-axe` already resolved, so both test runners measure with the same
 engine.
 
+## The specification is not only the variant matrix — and hand-testing is what found that
+
+`IconButton` shipped without its `Fillet` capability: the design lets an icon button be
+round **or** square, and only the round form existed.
+
+The extraction was not sloppy in the way that sounds. The component set genuinely has no
+`Fillet` variant property — its matrix is 3 sizes × 4 states = 12, exactly as transcribed,
+and every value in it was correct. The capability lives somewhere a variant-focused
+extraction never looks: three `.Section Header` descriptions (`15:20248`, `15:20475`,
+`15:20702`, one per variant) stating "Only the icon button can be set to a round button",
+demonstrated by two instances of the _same_ component with the corner radius overridden on
+the instance. Nothing in the component set hints that the override is meaningful.
+
+That is the third instance of one failure mode: **reading what the component declares
+rather than what the design says.** The Overview page's section definitions were the
+first, this is the second and third. It is also the same shape as the gate failures
+recorded above — a source that appears fully read because the part that was read is
+complete. The rule it produced is in [CLAUDE.md](../CLAUDE.md): read the page's text
+nodes, not only its component sets.
+
+Two things worth keeping about the fix. It needed **no new tokens** — round is
+`radius-full`, square is `radius-control`, the same radius Button already uses, which is
+some evidence that `radius-control` was named for the right thing. And it is **not** a
+design-fidelity divergence: implementing a capability the design documents is fidelity,
+so the register stays at seven.
+
+**It was found by hand-testing, not by any gate**, and that closes a loop. The rule that a
+component is exercised by hand before its PR opens was justified in the abstract — some
+things only surface with eyes and a keyboard. This is the case that earns it. Every gate
+was green: 97 unit tests, 43 browser tests, axe in both modes, a full contrast contract.
+None of them could fail, because none of them knew the capability existed. Only a person
+comparing the component against the design could see what was absent, and absence is
+precisely what a test suite cannot assert.
+
 ## Not every convention earns a gate
 
 The working agreement says a gate that has never failed is unproven, and every gate in
