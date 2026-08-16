@@ -411,21 +411,20 @@ describe('Dialog — initial focus', () => {
     expect(screen.getByRole('button', { name: 'Close Delete file?' })).not.toHaveFocus();
   });
 
-  it('falls back to the dialog itself when nothing inside can take focus', () => {
-    const { container } = render(
+  it('focuses the close control when dismissal is the only action', () => {
+    render(
       <Dialog open onOpenChange={jest.fn()} title="Saved" closeLabel="Close">
         Your changes are safe.
       </Dialog>
     );
 
-    // Not `<body>`. Focus landing on the body strands the user outside an inert page
-    // with nothing announced — the same failure Input's clear control had, at a
-    // larger scale. The dialog is focusable so the name and description are read.
-    const dialog = container.querySelector('dialog')!;
-    const close = screen.getByRole('button', { name: 'Close' });
-    // The close control is skipped, so with no other candidate the dialog wins.
-    expect(close).not.toHaveFocus();
-    expect(dialog).toHaveFocus();
+    // The skip rule applies only when there is something else to do. With no footer,
+    // closing IS the action — and the earlier behaviour of focusing the dialog
+    // container left a sighted keyboard user with no visible focus ring, since a
+    // container draws none. What must never happen is focus on `<body>`, which would
+    // strand the user outside an inert page.
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+    expect(document.body).not.toHaveFocus();
   });
 });
 

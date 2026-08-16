@@ -220,6 +220,40 @@ does read as disabled rather than broken, the 24×24 clear target at `sm` is not
 doubled focus treatment (cyan inner border plus neutral offset ring) reads as deliberate
 in both modes, and the one-ramp-step gap between placeholder and value stays perceptible.
 
+### `Dialog`
+
+Hand-testing with a screen reader found **three** things, and only one was a defect in the
+component. All three are worth recording, because two of them were resolved by measurement
+rather than by changing code, and "we checked and it was fine" is otherwise indistinguishable
+from "we did not check".
+
+1. **Initial focus landed on the dialog container, not on an action** — in the one story
+   with no footer. The resolver ran and did exactly what it was specified to do: skip the
+   close control, and fall back to the container when nothing else is focusable. Both
+   runners asserted that behaviour and passed. The **decision** was wrong, for a reason
+   neither the plan nor the tests had considered: a container draws no focus ring, so a
+   sighted keyboard user saw nothing focused at all, and when dismissal is the only action
+   the close control is not "how to leave" — it is the action. The fallback chain now ends
+   `… ?? close ?? dialog`.
+
+2. **The body is not reachable by Tab, and should not be** — except when it scrolls. Text
+   is not in the tab order anywhere on the web, and `aria-describedby` announces the body
+   on entry regardless. But once the body **overflows**, a keyboard-only user (no virtual
+   cursor) has no way to scroll it and cannot read past the fold. axe names this
+   `scrollable-region-focusable`, and reported it as **serious** the moment a spec was
+   written that used long enough content — every existing axe spec had used short content,
+   so the gate had never run on its subject. The body now takes a tab stop exactly when it
+   becomes a scrolling region, which is the same runtime-not-a-prop shape as `Scrollable`
+   itself.
+
+3. **Focus appeared to be stranded after closing from a footer button** — and was not.
+   Probing Storybook with a programmatic `element.click()` showed focus left on Cancel
+   inside the closed dialog; a programmatic click does not focus the way a pointer does,
+   so `showModal()` had recorded nothing meaningful to restore to. Under real events focus
+   returns to the trigger. The instrument was wrong, not the component — but the path
+   (closing from a control _inside_ the dialog, which destroys the focused element on the
+   way out) genuinely had no test, and now has one.
+
 ### `Button` and `IconButton`
 
 **Screen-reader announcement.** Every variant and state was exercised with a screen

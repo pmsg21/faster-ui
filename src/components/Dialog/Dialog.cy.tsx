@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { CONTENT_DANGER_ON_WHITE } from '../../../a11y.config';
 import { checkA11y, checkA11yWithAcceptedContrast } from '../../../cypress/support/a11y';
@@ -37,8 +38,13 @@ const scrim = () => cy.get('[data-slot="scrim"]');
  */
 function DialogHarness({
   onOpenChange,
+  renderFooter,
   ...props
-}: Partial<DialogProps> & { onOpenChange?: (open: boolean) => void }) {
+}: Partial<DialogProps> & {
+  onOpenChange?: (open: boolean) => void;
+  /** Given `close`, so a spec can exercise closing from a control inside the dialog. */
+  renderFooter?: (close: () => void) => ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -51,6 +57,7 @@ function DialogHarness({
       <Dialog
         title="Delete file?"
         {...props}
+        footer={renderFooter ? renderFooter(() => setOpen(false)) : props.footer}
         open={open}
         onOpenChange={(next) => {
           setOpen(next);
@@ -63,7 +70,10 @@ function DialogHarness({
   );
 }
 
-function mountHarness(props: Partial<DialogProps> = {}, theme: 'light' | 'dark' = 'light') {
+function mountHarness(
+  props: Partial<DialogProps> & { renderFooter?: (close: () => void) => ReactNode } = {},
+  theme: 'light' | 'dark' = 'light'
+) {
   document.documentElement.dataset.theme = theme;
   cy.mount(
     <div className="bg-surface-base flex min-h-160 flex-col items-start gap-4 p-6">
@@ -110,12 +120,15 @@ describe('Dialog — focus', () => {
     cy.focused().should('have.text', 'Confirm');
   });
 
-  it('falls back to the dialog itself rather than to <body>', () => {
+  it('focuses the close control when dismissal is the only action', () => {
     mountHarness();
     open();
-    // Focus on <body> would strand a keyboard user outside an inert page with nothing
-    // announced — the same failure Input's clear control had, at a larger scale.
-    cy.focused().should('match', 'dialog');
+    // The close control is skipped only when there is something ELSE to do. With no
+    // footer it is not the way out of the dialog, it IS the action — and the previous
+    // behaviour (focusing the dialog container) left a sighted keyboard user with no
+    // visible focus ring at all, because a container draws none. Found by hand-testing;
+    // both runners had asserted the old decision faithfully.
+    cy.focused().should('have.attr', 'data-slot', 'close');
   });
 
   it('returns focus to the trigger on close', () => {
@@ -124,6 +137,33 @@ describe('Dialog — focus', () => {
     cy.focused().should('have.text', 'Confirm');
 
     cy.realPress('Escape');
+    cy.focused().should('have.attr', 'data-testid', 'trigger');
+  });
+
+  /**
+   * The same claim by the other route — closing from a control INSIDE the dialog, which
+   * is the path a user actually takes. Escape and a footer button reach `close()`
+   * differently, and only this one destroys the focused element on the way, so a test
+   * covering Escape alone does not cover it.
+   *
+   * Worth keeping for how it surfaced: probing Storybook with a programmatic `.click()`
+   * appeared to show focus stranded on Cancel inside the closed dialog. It was the probe
+   * — `element.click()` does not focus the way a pointer does, so `showModal()` had no
+   * meaningful element to restore to. Real events show the trigger focused.
+   */
+  it('returns focus to the trigger when closed from a control inside the dialog', () => {
+    mountHarness({
+      renderFooter: (close) => (
+        <Button data-testid="cancel" variant="ghost" onClick={close}>
+          Cancel
+        </Button>
+      ),
+    });
+    open();
+    cy.focused().should('have.attr', 'data-testid', 'cancel');
+
+    cy.findByTestId('cancel').click();
+    cy.get('dialog').should('not.have.attr', 'open');
     cy.focused().should('have.attr', 'data-testid', 'trigger');
   });
 
@@ -388,6 +428,41 @@ describe('Dialog — overflow is runtime, not a variant', () => {
     });
   });
 
+  it('gives the body a tab stop only once it scrolls', () => {
+    // Short content: no stop, because a non-interactive block has no business in the tab
+    // order and a screen reader reads it in browse mode anyway.
+    mountHarness({ footer: <Button>Confirm</Button> });
+    open();
+    cy.get('[data-slot="body"]').should('not.have.attr', 'tabindex');
+    cy.realPress('Escape');
+
+    // Overflowing content: a stop appears, because a keyboard-only user has no other way
+    // to scroll it and would be unable to read past the fold.
+    mountHarness({
+      footer: <Button>Confirm</Button>,
+      children: (
+        <>
+          {Array.from({ length: 40 }, (_, index) => (
+            <p key={index}>Some contents…</p>
+          ))}
+        </>
+      ),
+    });
+    open();
+    cy.get('[data-slot="body"]').should('have.attr', 'tabindex', '0');
+
+    // And it genuinely scrolls from the keyboard once focused.
+    cy.get('[data-slot="body"]').focus();
+    cy.focused().should('have.attr', 'data-slot', 'body');
+    cy.get('[data-slot="body"]').then(($body) => {
+      const before = $body[0]!.scrollTop;
+      cy.realPress('PageDown');
+      cy.get('[data-slot="body"]').should(($after) => {
+        expect($after[0]!.scrollTop).to.be.greaterThan(before);
+      });
+    });
+  });
+
   it('hugs its content when there is little of it', () => {
     mountHarness({ footer: <Button>Confirm</Button> });
     open();
@@ -417,6 +492,28 @@ describe('Dialog — accessibility', () => {
 
   it('has no axe violations with dividers', () => {
     mountHarness({ dividers: true, footer: <Button>Save</Button> });
+    open();
+    checkA11y();
+  });
+
+  /**
+   * Every other axe spec here uses SHORT content, so none of them ever exercised a
+   * scrolling body — the gate ran, but not on its subject, one more time. axe has a rule
+   * for precisely this (`scrollable-region-focusable`): a region that scrolls but cannot
+   * take focus is unreachable for a keyboard-only user, who then has no way to read past
+   * the fold.
+   */
+  it('has no axe violations when the body actually scrolls', () => {
+    mountHarness({
+      footer: <Button>Close</Button>,
+      children: (
+        <>
+          {Array.from({ length: 40 }, (_, index) => (
+            <p key={index}>Some contents…</p>
+          ))}
+        </>
+      ),
+    });
     open();
     checkA11y();
   });

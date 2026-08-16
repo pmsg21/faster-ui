@@ -95,9 +95,22 @@ type Story = StoryObj<typeof meta>;
  */
 function DialogDemo({
   triggerLabel = 'Open dialog',
+  renderFooter,
   ...props
-}: Partial<DialogProps> & { triggerLabel?: string }) {
+}: Partial<Omit<DialogProps, 'footer'>> & {
+  triggerLabel?: string;
+  /**
+   * Given a `close` callback, so the actions can actually close the dialog.
+   *
+   * A `footer` passed as a static element cannot — it has no way to reach this
+   * component's state — and a dialog whose buttons do nothing demonstrates half the
+   * component. The footer slot's whole contract is that the consumer composes real
+   * controls into a layout we own, and that is only visible if the controls work.
+   */
+  renderFooter?: (close: () => void) => ReactNode;
+}) {
   const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}>
@@ -106,6 +119,7 @@ function DialogDemo({
       <Dialog
         title="Delete file?"
         {...props}
+        footer={renderFooter?.(close)}
         open={open}
         onOpenChange={(next) => {
           setOpen(next);
@@ -118,10 +132,42 @@ function DialogDemo({
   );
 }
 
-const CancelConfirm = (
+/**
+ * Both actions are `fn()` spies as well as closing the dialog, so the **Actions** panel
+ * shows which one fired.
+ *
+ * Same reasoning as `Button`'s Disabled and Loading stories, inverted: there the panel
+ * staying empty was the visible proof that activation was suppressed, and here the panel
+ * filling is the visible proof that the footer slot wires through to the consumer's own
+ * handlers rather than being intercepted by the component.
+ */
+const onCancel = fn();
+const onConfirm = fn();
+const onDelete = fn();
+const onSave = fn();
+const onDisagree = fn();
+const onAgree = fn();
+const onContinue = fn();
+
+const cancelConfirm = (close: () => void) => (
   <>
-    <Button variant="ghost">Cancel</Button>
-    <Button>Confirm</Button>
+    <Button
+      variant="ghost"
+      onClick={() => {
+        onCancel();
+        close();
+      }}
+    >
+      Cancel
+    </Button>
+    <Button
+      onClick={() => {
+        onConfirm();
+        close();
+      }}
+    >
+      Confirm
+    </Button>
   </>
 );
 
@@ -266,7 +312,7 @@ export const Basic: Story = {
       },
     },
   },
-  render: (args) => <DialogDemo {...args} footer={CancelConfirm} />,
+  render: (args) => <DialogDemo {...args} renderFooter={cancelConfirm} />,
 };
 
 export const Warning: Story = {
@@ -290,14 +336,29 @@ export const Warning: Story = {
     <DialogDemo
       {...args}
       triggerLabel="Delete file"
-      footer={
+      renderFooter={(close) => (
         <>
-          <Button variant="ghost">Cancel</Button>
-          <Button variant="outline" tone="danger">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              onCancel();
+              close();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="outline"
+            tone="danger"
+            onClick={() => {
+              onDelete();
+              close();
+            }}
+          >
             Delete
           </Button>
         </>
-      }
+      )}
     >
       This file will be permanently removed. This cannot be undone.
     </DialogDemo>
@@ -322,12 +383,27 @@ export const WithDividers: Story = {
     <DialogDemo
       {...args}
       triggerLabel="Review terms"
-      footer={
+      renderFooter={(close) => (
         <>
-          <Button variant="ghost">Cancel</Button>
-          <Button>Save</Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              onCancel();
+              close();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              onSave();
+              close();
+            }}
+          >
+            Save
+          </Button>
         </>
-      }
+      )}
     >
       Some contents… Some contents…
     </DialogDemo>
@@ -352,12 +428,27 @@ export const Scrollable: Story = {
     <DialogDemo
       {...args}
       triggerLabel="Read release notes"
-      footer={
+      renderFooter={(close) => (
         <>
-          <Button variant="ghost">Disagree</Button>
-          <Button>Agree</Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              onDisagree();
+              close();
+            }}
+          >
+            Disagree
+          </Button>
+          <Button
+            onClick={() => {
+              onAgree();
+              close();
+            }}
+          >
+            Agree
+          </Button>
         </>
-      }
+      )}
     >
       {Array.from({ length: 30 }, (_, index) => (
         <p key={index} className="mb-2">
@@ -383,9 +474,9 @@ export const Sizes: Story = {
   },
   render: (args) => (
     <div className="flex flex-wrap gap-3">
-      <DialogDemo {...args} size="sm" triggerLabel="Small — 400px" footer={CancelConfirm} />
-      <DialogDemo {...args} size="md" triggerLabel="Medium — 600px" footer={CancelConfirm} />
-      <DialogDemo {...args} size="lg" triggerLabel="Large — 900px" footer={CancelConfirm} />
+      <DialogDemo {...args} size="sm" triggerLabel="Small — 400px" renderFooter={cancelConfirm} />
+      <DialogDemo {...args} size="md" triggerLabel="Medium — 600px" renderFooter={cancelConfirm} />
+      <DialogDemo {...args} size="lg" triggerLabel="Large — 900px" renderFooter={cancelConfirm} />
     </div>
   ),
 };
@@ -424,7 +515,20 @@ export const NotDismissible: Story = {
   },
   args: { closeOnBackdropClick: false, title: 'Finish setting up' },
   render: (args) => (
-    <DialogDemo {...args} triggerLabel="Continue setup" footer={<Button>Continue</Button>}>
+    <DialogDemo
+      {...args}
+      triggerLabel="Continue setup"
+      renderFooter={(close) => (
+        <Button
+          onClick={() => {
+            onContinue();
+            close();
+          }}
+        >
+          Continue
+        </Button>
+      )}
+    >
       Clicking outside will not dismiss this.
     </DialogDemo>
   ),
@@ -449,7 +553,7 @@ export const LongTitle: Story = {
     title: 'Delete every file in this workspace, including the ones shared with other people?',
   },
   render: (args) => (
-    <DialogDemo {...args} triggerLabel="Long title" footer={CancelConfirm}>
+    <DialogDemo {...args} triggerLabel="Long title" renderFooter={cancelConfirm}>
       This cannot be undone.
     </DialogDemo>
   ),
@@ -464,5 +568,5 @@ export const Playground: Story = {
       },
     },
   },
-  render: (args) => <DialogDemo {...args} footer={CancelConfirm} />,
+  render: (args) => <DialogDemo {...args} renderFooter={cancelConfirm} />,
 };

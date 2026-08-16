@@ -43,3 +43,29 @@ if (typeof HTMLDialogElement !== 'undefined') {
     this.dispatchEvent(new Event('close'));
   };
 }
+
+/**
+ * ── THE ResizeObserver STUB, AND WHAT IT COSTS ──────────────────────────────
+ *
+ * jsdom implements no `ResizeObserver` at all, and `Dialog` uses one to decide whether
+ * its body has become a scrolling region and therefore needs a tab stop.
+ *
+ * This stub does **nothing** — it never fires. That is honest rather than lazy: jsdom
+ * performs no layout, so `scrollHeight` and `clientHeight` are both `0` and no
+ * measurement taken here could be true. The consequence is that **Jest cannot test the
+ * scrolling body's tab stop in either direction**; `Dialog.cy.tsx` asserts it in a real
+ * browser, including that the region is absent from the tab order when the content is
+ * short and present once it overflows.
+ *
+ * It is a stub rather than a guard inside the component on purpose. The component's
+ * browser baseline (Safari 15.4) has had `ResizeObserver` since Safari 13.1, so a
+ * `typeof` check in shipped code would exist solely to serve this test environment —
+ * which is how a test concern quietly becomes a consumer's runtime branch.
+ */
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

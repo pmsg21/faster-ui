@@ -83,13 +83,13 @@ Measured, not assumed:
 
 | Entry                    | Brotli   |
 | ------------------------ | -------- |
-| Full library (ESM)       | 11.67 kB |
-| `import { Button }` only | 9.49 kB  |
-| `import { Dialog }` only | 9.98 kB  |
-| Stylesheet               | 5.76 kB  |
+| Full library (ESM)       | 11.78 kB |
+| `import { Button }` only | 9.53 kB  |
+| `import { Dialog }` only | 10.07 kB |
+| Stylesheet               | 5.73 kB  |
 
 Two things fall out of that, and both are worth saying plainly rather than presenting
-11.67 kB as a win.
+11.78 kB as a win.
 
 **Tree-shaking works — but it did not, and the budget is what caught it.** An earlier
 version of this section claimed tree-shaking worked on the evidence that "dropping
@@ -814,6 +814,21 @@ engine was probed first (it resolves the property correctly and paints `#B3B3B3`
 proves nothing about the baseline — so the version matrix above was looked up rather than
 inferred from a passing check. **A feature working in the browser in front of you is the
 weakest possible evidence about the browsers you support.**
+
+**The plan for this component said the degradation would be "graceful". It would not
+have been**, and that error is worth naming as a class rather than an incident. It is the
+same shape as the 140-byte tree-shaking inference recorded above: a plausible claim, made
+confidently, that nobody had measured. Both were reasonable-sounding predictions about
+behaviour at a boundary — an old browser, an unused import — where the boundary is exactly
+where intuition has no data. The tell in both cases is a sentence that describes what
+_would_ happen rather than what was observed to happen.
+
+The general lesson, which is the reason this is its own entry rather than a line in the
+section above: **two platform features that arrive together in your head can be two years
+apart in the field.** `<dialog>` and a usable `::backdrop` read as one capability — they
+are specified together, documented together, and demoed together — and they became
+available twenty-three months apart. Anything that pairs a element with a pseudo-element,
+or a JavaScript API with the CSS that styles it, deserves the same two-column check.
 
 ## A translucent token must be visible to the guard without being measurable by it
 

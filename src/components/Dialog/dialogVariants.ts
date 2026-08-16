@@ -148,7 +148,11 @@ export const dialogSectionVariants = /* @__PURE__ */ cva(['px-6'], {
     section: {
       header: 'flex shrink-0 items-start justify-between gap-2',
       // `min-h-0` is what lets this shrink inside the flex column and therefore scroll.
-      body: 'min-h-0 flex-1 overflow-y-auto text-body text-content-secondary',
+      // The focus ring is inset (`-outline-offset-2`) because this element clips its own
+      // overflow, so an outward ring would be drawn underneath the card's edge and half
+      // of it would disappear. It only ever shows when the body is scrolling, since that
+      // is the only time it takes a tab stop — see Dialog.tsx.
+      body: 'min-h-0 flex-1 overflow-y-auto text-body text-content-secondary focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus-strong',
       // 8px between the actions, right-aligned; both are `Button size="md"`, whose
       // 98x36 minimum already matches the drawn Button Grid exactly.
       footer: 'flex shrink-0 flex-wrap items-center justify-end gap-2',

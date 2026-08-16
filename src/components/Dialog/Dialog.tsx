@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useId, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { MouseEvent, ReactNode, RefObject, SyntheticEvent } from 'react';
 import type { VariantProps } from 'class-variance-authority';
 
@@ -224,6 +224,25 @@ export const Dialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, DialogProps>
   // of teardown ordering.
   const holdsScrollLock = useRef(false);
 
+  /**
+   * Whether the body is currently a scrolling region, which decides whether it takes a
+   * tab stop.
+   *
+   * Non-interactive text is not in the tab order anywhere on the web, and putting it
+   * there would add a stop to every dialog for no gain — a screen-reader user reads the
+   * body in browse mode with arrow keys, and `aria-describedby` announces it on entry
+   * regardless. The exception is narrow and real: once the body SCROLLS, a keyboard-only
+   * user (not using a screen reader, so no virtual cursor) has no way to reach it and
+   * therefore cannot read past the fold. axe names this `scrollable-region-focusable`,
+   * and it reported the violation here before this existed.
+   *
+   * So the tab stop appears exactly when it becomes necessary and not before — which is
+   * the same shape as `Scrollable` not being a prop: a runtime property of the content,
+   * not a decision the author makes.
+   */
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const [bodyScrolls, setBodyScrolls] = useState(false);
+
   const setRefs = useCallback(
     (node: HTMLDialogElement | null) => {
       dialogRef.current = node;
@@ -248,9 +267,25 @@ export const Dialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, DialogProps>
       if (explicit) {
         explicit.focus();
       } else {
+        // The chain, and the middle link is the one hand-testing added:
+        //   1. the first focusable element that is NOT the close control
+        //   2. the close control
+        //   3. the dialog itself
+        //
+        // Skipping the close control is right when there is something else to do —
+        // it is first in DOM order only because the design puts it in the title row,
+        // and landing there tells a keyboard user how to leave rather than what to
+        // decide. But when dismissal is the ONLY action, the close control is not the
+        // way out of the dialog, it IS the dialog's action, and skipping it strands
+        // focus on a container that draws no focus ring: a screen reader hears the
+        // title, and a sighted keyboard user sees nothing focused at all.
+        //
+        // Step 3 is therefore defensive rather than reachable — the close control is
+        // always rendered — but it is what stops focus falling to <body>, which is the
+        // failure that strands a user outside an inert page.
         const candidates = element.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
         const firstNonClose = Array.from(candidates).find((node) => node !== closeRef.current);
-        (firstNonClose ?? element).focus();
+        (firstNonClose ?? closeRef.current ?? element).focus();
       }
     } else if (!open && element.open) {
       element.close();
@@ -264,6 +299,21 @@ export const Dialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, DialogProps>
     // changed would yank focus out from under someone mid-interaction.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  useEffect(() => {
+    const node = bodyRef.current;
+    if (!open || !node) {
+      setBodyScrolls(false);
+      return;
+    }
+    const measure = () => setBodyScrolls(node.scrollHeight > node.clientHeight);
+    measure();
+    // The container's own box changes when the dialog is resized; `children` in the
+    // dependencies covers the other direction, content growing inside a fixed box.
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [open, children]);
 
   // Unmounting while open would otherwise leave the page permanently scroll-locked —
   // a dialog removed by a route change never runs its close path. The element itself
@@ -300,8 +350,22 @@ export const Dialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, DialogProps>
 
   const body = (
     <div
+      ref={bodyRef}
       id={bodyId}
       data-slot="body"
+      // Only while it scrolls — see `bodyScrolls` above. A focusable region also needs a
+      // visible indicator, and the outline is inset because an outer ring on a clipping
+      // scroll container is drawn under the card's own overflow.
+      //
+      // The lint rule is right in general and this is its documented exception: a region
+      // that scrolls must be reachable, or a keyboard-only user cannot read past the
+      // fold. axe agrees from the other direction — `scrollable-region-focusable`
+      // reported a serious violation here before this existed. Deliberately NOT solved
+      // by giving the node `role="region"` to satisfy the rule: this element is the
+      // `aria-describedby` target, and wrapping it in a named landmark would change how
+      // the body is announced in order to quieten a linter.
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+      tabIndex={bodyScrolls ? 0 : undefined}
       className={dialogSectionVariants({ section: 'body', dividers })}
     >
       {tone === 'warning' ? (

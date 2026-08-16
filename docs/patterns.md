@@ -304,19 +304,35 @@ So `Dialog.cy.tsx` opens by asserting `HTMLDialogElement.prototype.showModal` is
 and separately that the element matches `:modal`, which only a `showModal()`'d dialog
 does.
 
-**Provoking it paid for itself immediately, and not in the way intended.** Installing the
-shim in the browser environment turned the sanity check red as designed — but **17 of the
-27 specs still passed**, and one of them was an inertness test. It asserted that a point
-over a background button hit the scrim instead, which is equally true of a non-modal
-dialog whose scrim covers the page: it was measuring z-order and reporting inertness.
-Rewritten to ask the background element to take focus — something covering cannot fake,
-because only a genuinely inert document refuses it — the spec fails against the shim as
-it should.
+### Provoke the gate, then read the survivors
 
-The general form is sharper than "prove the gate fails". **Provoke the gate, then read
-which _other_ tests survived the provocation.** Every one that stayed green under a
-deliberately broken subject is a test that was not measuring that subject, and you will
-not find those any other way.
+The working agreement already says a gate that has never failed is unproven. This is the
+second half of that procedure, and it is the more valuable half because it finds problems
+you were not looking for.
+
+**Step one — break the subject and confirm the gate goes red.** This tells you the gate
+works. It is the step everyone remembers.
+
+**Step two — with the subject still broken, read the list of tests that _passed_.** Every
+test that stayed green while its subject was deliberately broken was measuring something
+adjacent to the thing it claims to measure. This is the step that finds hollow tests, and
+there is no other way to find them: they are green in normal runs by definition, and they
+read correctly, because a test that _looks_ wrong would have been fixed already.
+
+Only then revert.
+
+The worked example. Installing the Jest shim in the browser environment turned the sanity
+check red as designed — and **17 of 27 specs still passed.** One was an inertness test. It
+asserted that a point over a background button hit the scrim instead, which is equally
+true of a non-modal dialog whose scrim happens to cover the page: it was measuring
+z-order and reporting inertness. Rewritten to ask the background element to _take focus_ —
+something merely covering it cannot fake, because only a genuinely inert document refuses
+focus — it now fails against the shim as it should.
+
+Step two generalises past this repository, and past testing. It is the same question as
+"what did this experiment fail to control for", asked in the one direction where the
+answer is cheap to obtain: you already have a broken system in front of you, and anything
+still reporting success is telling you what it is not connected to.
 
 ### Real keyboard needs real events
 

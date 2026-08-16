@@ -280,8 +280,9 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   fix annotated `forwardRef(…)`; `Dialog` showed that `cva(…)` needed it too, and that
   `buttonVariants` / `inputVariants` had been leaking since they shipped. Both rounds were
   caught by the `size-limit` budget and neither by review. Current: full library
-  **11.67 kB** brotli, `{ Button }` **9.49 kB**, `{ Dialog }` **9.98 kB**, stylesheet
-  **5.76 kB**. Any new component must annotate _every_ module-scope call or it silently
+  **11.78 kB** brotli, `{ Button }` **9.53 kB**, `{ Dialog }` **10.07 kB**, stylesheet
+  **5.73 kB**. A 40-byte residual on Button-only is measured but unattributed — recorded
+  rather than rounded away, since the original defect hid behind "140 bytes is noise". Any new component must annotate _every_ module-scope call or it silently
   reintroduces the defect.
 - **Done — `Dialog` (on `feat/dialog`, not yet released).** Built on the native
   `<dialog>` + `showModal()`, so focus trapping, focus restoration, Escape, top-layer
@@ -323,6 +324,15 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   nowhere, so a passing Jest suite read as covering modality. The previous three lapses
   were all documents, which is presumably why nobody thought to look in `jest.setup.ts`.
 
+- **jsdom has no `ResizeObserver` either, and `jest.setup.ts` stubs it to a no-op.**
+  `Dialog` uses one to decide whether its body has become a scrolling region and therefore
+  needs a tab stop. The stub never fires, deliberately: jsdom performs no layout, so
+  `scrollHeight` and `clientHeight` are both `0` and no measurement here could be true.
+  **Jest therefore asserts nothing about the body's tab stop in either direction**;
+  `Dialog.cy.tsx` covers both. It is a stub rather than a `typeof` guard inside the
+  component because the browser baseline (Safari 15.4) has had `ResizeObserver` since
+  Safari 13.1 — a guard would exist only to serve the test environment, which is how a
+  test concern becomes a consumer's runtime branch.
 - **Focus-trap wrap-around is not asserted, and cannot be here.** A Cypress component test
   mounts into an iframe, and `showModal()` makes only its **own** document inert — so Tab
   past the last stop in the ring leaves the frame and the AUT's `activeElement` becomes
