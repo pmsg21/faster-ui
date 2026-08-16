@@ -8,7 +8,18 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    dts({ include: ['src'], exclude: ['**/*.test.*', '**/*.stories.*', '**/*.cy.*'] }),
+    dts({
+      include: ['src'],
+      exclude: [
+        '**/*.test.*',
+        '**/*.stories.*',
+        '**/*.cy.*',
+        // Build-time machinery, not public API. Nothing in src/index.ts references
+        // it, so shipping its declaration only advertises an import we never
+        // promised to keep working.
+        '**/contrast-contract.ts',
+      ],
+    }),
   ],
   resolve: {
     alias: { '@': resolve(__dirname, 'src') },
