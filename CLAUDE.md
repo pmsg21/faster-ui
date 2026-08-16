@@ -324,6 +324,21 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   nowhere, so a passing Jest suite read as covering modality. The previous three lapses
   were all documents, which is presumably why nobody thought to look in `jest.setup.ts`.
 
+- **The package's browser floor is Chrome 105 / Safari 15.4 / Firefox 121, and it is not
+  set by `Dialog`.** `:has()` in `Input`'s focused field binds hardest (Firefox 121,
+  Dec 2023); `:focus-visible` set Safari 15.4 back in `Button`; `showModal()` (Firefox 98)
+  is the **least** binding of the three. A modal did not raise the floor — it prompted the
+  first measurement of one that had existed unrecorded since `Input`.
+
+  Separately, Tailwind v4 emits 59 `@property` rules (Safari 16.4 / Firefox 128) with an
+  `@supports` fallback declaring the same variables, so that one degrades rather than
+  breaks. It is a **build-tool** floor: invisible in every component's source, chosen by
+  nobody here, and impossible to find by reading the code. Re-measure from
+  `dist/styles.css` when Tailwind majors change.
+
+  Recorded as the **fifth instance of the state-describing pattern** — a true thing no
+  document said. See [docs/decisions.md](docs/decisions.md).
+
 - **jsdom has no `ResizeObserver` either, and `jest.setup.ts` stubs it to a no-op.**
   `Dialog` uses one to decide whether its body has become a scrolling region and therefore
   needs a tab stop. The stub never fires, deliberately: jsdom performs no layout, so

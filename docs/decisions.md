@@ -764,8 +764,35 @@ accumulates them.
 
 **The baseline, stated rather than assumed**, because it is the first question a reviewer
 should ask: `<dialog>` + `showModal()` is Chrome 37, Edge 79, **Safari 15.4** and
-**Firefox 98** — the last two both March 2022. That is a 2022 floor for a 2026 library,
-which is fine, but "fine" is a judgement someone else is entitled to check.
+**Firefox 98** — the last two both March 2022.
+
+**And it is not the package's floor**, which is the part worth recording. The PR for this
+component originally claimed "no other component in the package has a floor". That was
+false, and measuring it produced a better fact than the one it replaced:
+
+| Feature                    | Set by                  | Chrome | Safari   | Firefox |
+| -------------------------- | ----------------------- | ------ | -------- | ------- |
+| `:has()`                   | `Input`'s focused field | 105    | 15.4     | **121** |
+| `:focus-visible`           | every component's ring  | 86     | **15.4** | 85      |
+| `<dialog>` + `showModal()` | `Dialog`                | 37     | 15.4     | 98      |
+
+The package floor is **Chrome 105 / Safari 15.4 / Firefox 121**, and `Dialog` is the
+**least** binding of the three — its requirement is older than `Input`'s in every engine,
+by twenty-one months in Firefox. `Button` set Safari 15.4 with `:focus-visible` in the very
+first component. Adding a modal did not raise the floor; it prompted someone to measure one
+that had existed, unrecorded, since `Input` shipped.
+
+There is also a **soft** floor nobody chose: Tailwind v4's output carries 59 `@property`
+rules (Safari 16.4, Firefox 128), with an `@supports` block declaring the same 24 `--tw-*`
+variables for engines that lack them — so it degrades rather than breaks. It is invisible in
+every component's source and would never be found by reading the code, which is exactly why
+it belongs in a document.
+
+This is the **fifth instance of the state-describing pattern**: a true thing that no document
+said. The others were the jsdom shim (in code), the stale `CLAUDE.md` after `Button`, the
+README that lagged `Input`, and `release-verification.md` silently skipping `0.1.0`. The
+shape repeats often enough that the useful question on any claim is not "is this right?" but
+"when was this last measured?"
 
 **What the platform does not supply, and is therefore ours:** page scroll locking (the
 background is inert but still scrolls under the wheel), backdrop-click dismissal, and the

@@ -19,5 +19,7 @@ Also fixes tree-shaking for every component: `cva(…)` calls are now annotated
 `/* @__PURE__ */`, without which importing one component retained the class matrices of
 others. A `{ Button }`-only import drops from 9.63 kB to 9.49 kB brotli.
 
-**Browser support note:** `Dialog` requires `<dialog>` + `showModal()` — Safari 15.4 and
-Firefox 98 (both March 2022). No other component in the package has a floor.
+**Browser support:** the package floor is **Chrome 105 / Safari 15.4 / Firefox 121**, set
+by `:has()` in `Input` — not by `Dialog`, whose `showModal()` requirement (Chrome 37 /
+Safari 15.4 / Firefox 98) is the least binding of the three. This release does not raise
+the floor; it is the first release to state it.

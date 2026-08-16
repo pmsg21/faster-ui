@@ -39,7 +39,9 @@ recomputed from the shipped tokens on each CI run, so the record cannot drift fr
 
 A row is a **decision, not an occurrence** — a later component re-applying an earlier
 decision extends that row instead of adding one. The count per component is falling:
-seven, then zero, then three.
+seven, then zero, then three, then zero. Each zero carries its mechanism in the register,
+because a zero that cannot show its working is indistinguishable from having stopped
+counting.
 
 The full register, with the alternatives measured and rejected, is in
 **[docs/design-fidelity.md](docs/design-fidelity.md)**. Each component's Storybook
@@ -101,9 +103,26 @@ The published `0.2.0` exports `Button`, `IconButton` and `Input`; `Dialog` joins
 the next release. The public surface is pinned by a test in both runners, so neither an
 accidental export nor an accidental omission can merge quietly.
 
-`Dialog` is built on the native `<dialog>` element, which sets a browser floor for that
-component only: **Safari 15.4 and Firefox 98**, both March 2022. Everything else in the
-package is plain CSS and has no such floor.
+### Browser support
+
+**Chrome 105 · Safari 15.4 · Firefox 121.** Measured from the compiled stylesheet and the
+component sources, not estimated:
+
+| Feature                    | Set by                  | Chrome | Safari   | Firefox |
+| -------------------------- | ----------------------- | ------ | -------- | ------- |
+| `:has()`                   | `Input`'s focused field | 105    | 15.4     | **121** |
+| `:focus-visible`           | every component's ring  | 86     | **15.4** | 85      |
+| `<dialog>` + `showModal()` | `Dialog`                | 37     | 15.4     | 98      |
+
+Worth stating plainly, because the natural assumption is the opposite: **`Dialog` is the
+least binding of the three.** Its `showModal()` requirement is older than `Input`'s `:has()`
+in every engine — twenty-one months older in Firefox. The package has had this floor since
+`Input` shipped; adding a modal did not raise it, it only made someone go and measure it.
+
+One soft floor worth knowing about: Tailwind v4 emits 59 `@property` rules (Safari 16.4,
+Firefox 128), but ships an `@supports` fallback that declares the same variables for older
+engines, so it degrades rather than breaks. It is also not something any component author
+chose — a build-tool floor, invisible in every component's source.
 
 The stylesheet carries the design tokens and the component classes. It deliberately
 carries **no CSS reset**: installing four components should not restyle your
