@@ -602,6 +602,28 @@ wrong one. Which is the same lesson `IconButton` produced twice: **a variant mat
 whole specification.** Had `Prefix & Suffix` been read as "`Prefix` plus `Suffix`", the
 extraction would have reported complete success.
 
+**What a consumer gets today if they pass `type="number"`.** It works. `Input` spreads every
+unrecognised prop onto the control, so the field accepts numeric input and the browser
+supplies **its own** spinner. That is worth stating precisely, because "not implemented" and
+"implemented differently from the mock" are different claims and a reader could reasonably
+infer the wrong one: the _capability_ is there, the _drawn control_ is not.
+
+**Why the stepper is a component and not a prop — the strongest half of the argument.** It is
+not extra props on a field. It is two more nested interactive controls, each needing its own
+accessible name, its own place in the tab order, and a keyboard contract the field does not
+have (<kbd>↑</kbd>/<kbd>↓</kbd>, arguably Page Up/Down and Home/End) — plus `min`/`max`/`step`
+clamping.
+
+And it carries a tension nothing else in this project has: **at `sm` the field is 24px tall,
+so two stacked stepper buttons cannot both clear the 24×24 of SC 2.5.8 without redrawing the
+control.** Every other divergence here was resolvable by the smallest change that clears a
+criterion. This one is not resolvable at all at that size — the design and the criterion are
+in genuine conflict, and shipping it would mint the register's first row of that kind for
+capability the brief never asked for.
+
+That is the `IconButton`-not-`iconOnly` case again, and more sharply. A flag cannot express a
+control with its own targets, its own keyboard contract and its own unresolvable geometry.
+
 What follows is that the addon is an **input group** — a layout composing a field with
 adjoining content, each with its own surface and border radius — and belongs in its own
 component rather than a prop on this one. That is the `IconButton`-not-`iconOnly` argument

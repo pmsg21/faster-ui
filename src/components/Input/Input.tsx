@@ -115,6 +115,14 @@ function ClearIcon() {
  * so mounting it up front removes the variance rather than betting on it. It collapses
  * to zero height while empty (`empty:mt-0` on a block with no line box), so an
  * error-free field is not paying for the space.
+ *
+ * **On `type="number"`.** It works — every unrecognised prop is spread onto the control —
+ * but you get the **browser's native spinner**, not the stepper the Figma file draws. That
+ * is implemented differently from the mock rather than not implemented, and the two are
+ * different claims. The drawn stepper is a separate component (`NumberInput`) that does not
+ * exist yet: it is two more nested controls with their own keyboard contract, and at `sm`
+ * the field is 24px tall, so two stacked buttons cannot both clear the 24×24 of SC 2.5.8
+ * without redrawing the control. See docs/decisions.md.
  */
 export const Input = /* @__PURE__ */ forwardRef<HTMLInputElement, InputProps>(function Input(
   {
