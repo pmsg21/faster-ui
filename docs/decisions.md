@@ -261,6 +261,45 @@ some evidence that `radius-control` was named for the right thing. And it is **n
 design-fidelity divergence: implementing a capability the design documents is fidelity,
 so the register stays at seven.
 
+### The second shape: composing a component is not inheriting its specification
+
+The same component produced a second instance the same day, in a different shape.
+`IconButton` composes `Button`, so its `outline` colours were taken as given. They are
+not the same: the icon sets (`15:20596` / `20590` / `20584` / `20578`) keep a neutral
+`line-subtle` rim in **every** state and wash the fill like a ghost button, where the
+labelled outline turns its border cyan and leaves the fill alone. Primary matched;
+outline did not; nothing in the code looked wrong, because sharing the code path is
+exactly what the composition is _for_.
+
+So the rule has two halves, and the second is: **shared implementation is not shared
+specification.** Extract the sibling's own nodes even when the components will
+legitimately share a code path. Two instances on one component in one session is the
+argument for extracting exhaustively per component rather than reasoning from a sibling.
+
+## A remedy inherited from another component must be re-justified against that component's source
+
+The sharpest thing the `IconButton` outline fix turned up was not the outline at all.
+
+`Button`'s ghost and outline variants darken their label from `content-secondary` to
+`content-primary` on hover and press. That darkening is **ours**, not the design's: it
+replaces the cyan hue shift the design uses, which we cannot ship because cyan on white
+measures 1.88–2.80. It is a remedy with a specific cause.
+
+Through composition it was reaching `IconButton`'s ghost and outline — where the icon
+sets never used cyan at all. The remedy was being applied in a context that never had
+the problem it exists to solve. Nothing flagged it, because the code was _consistent_:
+the same variant, the same class, the same helper. Consistency is what made it invisible.
+
+**A fix carries its reason, and when the reason does not hold the fix is a divergence
+with no evidence behind it.** That is how a register of seven considered divergences
+quietly becomes a rewrite: not by adding rows deliberately, but by propagating remedies
+past the conditions that justified them. So an inherited remedy gets re-checked against
+the receiving component's own source before it is allowed to stand.
+
+Here the re-check removed it. `content-secondary` on the two washes measures 8.00 and
+6.67, comfortably over AA, so restating the design costs no contrast — the design was
+simply right, and we had been overriding it for a reason that did not apply.
+
 **It was found by hand-testing, not by any gate**, and that closes a loop. The rule that a
 component is exercised by hand before its PR opens was justified in the abstract — some
 things only surface with eyes and a keyboard. This is the case that earns it. Every gate

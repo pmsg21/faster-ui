@@ -36,16 +36,25 @@ noise.
 values at build time and freezes `bg-surface-base` at its light value under
 `[data-theme='dark']`.
 
-**A variant matrix is not the whole specification.** Before treating a component as
-specified, **read the page's text nodes, not only its component sets.** Capabilities
-live in section prose, in instance overrides, and in documentation frames that carry
-no variant property at all — and an extraction that walks the component sets reports
-success while missing every one of them. It has already happened three times: the
-Overview section definitions, the `Fillet` round/square capability on `IconButton`
-(documented in three section descriptions, zero variant properties — see
-[docs/decisions.md](docs/decisions.md)), and it is the same shape as the gate
-failures below: a source that looks fully read because the part that _was_ read is
-complete.
+**A variant matrix is not the whole specification.** Extraction is exhaustive **per
+component**, and it fails in two shapes — both of which report success:
+
+1. **Read the page's text nodes, not only its component sets.** Capabilities live in
+   section prose, in instance overrides, and in documentation frames carrying no
+   variant property at all. `IconButton`'s round/square `Fillet` was three section
+   descriptions and zero variant properties; the Overview page's section definitions
+   were the same shape.
+2. **A component that composes another does not inherit its specification.**
+   `IconButton` composes `Button`, so its outline colours were taken as given — and
+   they are different: the icon sets keep a neutral rim in every state and wash the
+   fill, where the labelled button turns its border cyan. **Shared implementation is
+   not shared specification.** Extract the sibling's own nodes, even when the code
+   will legitimately share a code path.
+
+Both happened on one component in one session, which is the argument for extracting
+exhaustively rather than reasoning from a sibling. It is also the same shape as the
+gate failures below: a source that looks fully read because the part that _was_ read
+is complete. Full record in [docs/decisions.md](docs/decisions.md).
 
 **Component completeness.** Not done until `X.tsx`, `X.test.tsx`, `X.cy.tsx`,
 `X.stories.tsx`, and `index.ts` all exist. Stories: one per variant and per state,
@@ -163,9 +172,10 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 
 - [docs/decisions.md](docs/decisions.md) — the "why" record (pnpm vs npm CLI,
   `@theme` vs `inline`, Cypress's own TS program, two `tsc -p`, `pre-push` scope).
-- `docs/patterns.md` — **after Button ships**, extracted from what we actually
-  built so Input/Dialog have a real reference. Not written yet: we have intentions,
-  not patterns.
+- [docs/patterns.md](docs/patterns.md) — the working detail extracted from what was
+  actually built. The **testing** section is complete (the Jest/Cypress split, the
+  hover-transition false-green, real keyboard events, component-scoped axe); the
+  component-API sections land when Button's PR closes.
 - [docs/tokens.md](docs/tokens.md) — the naming scheme, layer rules, and the
   primitive→semantic map (light and dark).
 - [docs/accessibility.md](docs/accessibility.md) — the contrast record: the
