@@ -11,33 +11,22 @@ React · TypeScript · Tailwind CSS v4 · Storybook · Jest · Cypress · GitHub
 ## Read this first: the buttons don't look exactly like the mock
 
 Open Storybook next to the Figma file and the difference is immediate — **the primary
-button ships a dark label on the cyan fill, not a white one.** That is deliberate and
-measured. White text on the brand cyan is a contrast ratio of 2.12:1 where WCAG requires
-4.5:1, and no step of the cyan ramp is dark enough to fix it — the darkest reaches 2.80:1,
-missing even the 3.0 floor allowed for large text. A near-black label on the same cyan
-measures 7.78:1. The cyan itself is untouched.
+button ships a dark label on the cyan fill, not a white one.** White on the brand cyan
+measures **2.12:1** where WCAG requires 4.5:1, and no step of the cyan ramp is dark
+enough to fix it. A near-black label on the same cyan measures **7.78:1**. The cyan
+itself is untouched.
 
-There are seven such differences in total, each one measured against a specific WCAG
-criterion:
+That is one of **seven** differences, each measured against a specific WCAG criterion:
+six changes and one addition (the file draws no focus state). Colour fixes land in the
+semantic token layer and never touch a primitive; two are component-level and touch no
+token at all. **No Figma value was edited** — every one stays traceable to its source
+node, and every ratio is recomputed from the shipped tokens on each CI run, so the
+record cannot drift from the code.
 
-| #   | What                               | Figma → shipped                      | Ratio                    |
-| --- | ---------------------------------- | ------------------------------------ | ------------------------ |
-| 1   | Solid button label                 | white → near-black                   | 2.12 → **7.78** (accent) |
-| 2   | Link-style button                  | colour only → underlined             | SC 1.4.1                 |
-| 3   | Outline/Link labels, accent tone   | cyan → neutral                       | 1.88–2.80 → **≥8.72**    |
-| 4   | Outline/Ghost/Link labels, danger  | ramp per state → pinned `danger-700` | 2.98–4.21 → **4.21**     |
-| 5   | Danger Ghost pressed background    | `danger-300` → `danger-200`          | 2.97 → **3.69**          |
-| 6   | Link-style target height           | 18/22/24px → minimum 24px            | SC 2.5.8                 |
-| 7   | Focus state (_added_, not changed) | none drawn → 2px neutral ring        | **15.79–16.48**          |
-
-We matched the design, measured it, found where it fails WCAG, and fixed those in the
-semantic token layer — never by editing a primitive, so every Figma value stays traceable
-to its source node. Each ratio is recomputed from the shipped tokens on every CI run, so
-the table cannot drift from the code.
-
-The full reasoning, with the alternatives that were measured and rejected, is in
-**[docs/design-fidelity.md](docs/design-fidelity.md)**. Every component's Storybook
-sidebar also opens with a **Design Fidelity** story showing both versions side by side.
+The full register, with the alternatives measured and rejected, is in
+**[docs/design-fidelity.md](docs/design-fidelity.md)**. Each component's Storybook
+sidebar also opens with a **Design Fidelity** story showing both versions side by side,
+with the ratio and criterion beneath.
 
 ## Getting started
 
