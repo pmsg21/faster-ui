@@ -266,8 +266,7 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   [docs/decisions.md](docs/decisions.md)). Seven design-fidelity divergences recorded.
   Two defects that every gate passed were found by hand-testing — the missing `Fillet`
   capability and an inherited-but-wrong `outline` interaction model.
-- **Done — `Input` (merged via #11), released as `@pmsg21/faster-ui@0.2.0` — the current
-  published version.** Seven Figma component sets and 237 components reduced to **one**
+- **Done — `Input` (merged via #11), released as `@pmsg21/faster-ui@0.2.0`.** Seven Figma component sets and 237 components reduced to **one**
   public axis (`size`): `State`, `Typing`, `Text Entered` and `State 2` are all runtime.
   `label` is required so a nameless field cannot compile; `disabled` uses the **native**
   attribute, deliberately unlike `Button`, because under `aria-disabled` the value still
@@ -284,7 +283,7 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   **5.73 kB**. A 40-byte residual on Button-only is measured but unattributed — recorded
   rather than rounded away, since the original defect hid behind "140 bytes is noise". Any new component must annotate _every_ module-scope call or it silently
   reintroduces the defect.
-- **Done — `Dialog` (on `feat/dialog`, not yet released).** Built on the native
+- **Done — `Dialog`, released as `@pmsg21/faster-ui@0.3.0`, which completes the brief.** Built on the native
   `<dialog>` + `showModal()`, so focus trapping, focus restoration, Escape, top-layer
   stacking and background inertness come from the platform; a headless dependency would
   have roughly tripled the package. Four Figma frames reduce to **one presentation axis**
@@ -294,7 +293,17 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   own prose is conditional, so it is a `max-height` plus `overflow-y: auto`. The scrim is
   a real element inside a transparent full-viewport shell rather than `::backdrop`, which
   is two years younger than `showModal()`. **Zero new fidelity rows** (7 / 0 / 3 / 0).
-  The dark-elevation obligation is discharged and now machine-enforced.
+  The dark-elevation obligation is discharged and now machine-enforced. Verified at
+  `0.3.0`: no `NPM_TOKEN` at any scope, publisher `github` via OIDC, SLSA provenance v1
+  with subject `pkg:npm/%40pmsg21/faster-ui@0.3.0` — see
+  [docs/release-verification.md](docs/release-verification.md).
+
+  **The release surfaced a contradiction in the Version Packages decision**, recorded in
+  [docs/decisions.md](docs/decisions.md): "verify the README before publishing" and "keep
+  the manual approval" cannot both be satisfied, because pushing the README fix to
+  `changeset-release/main` makes the head commit human-authored and GitHub's gate only
+  applies to bot-authored PRs. A **different failure class** from the seven unrun gates —
+  nothing was measured wrongly; a control was silently removable by an unrelated action.
 
 ## Known gaps / state to remember
 

@@ -232,6 +232,50 @@ OIDC trusted publishing and carries no `NPM_TOKEN`, and that holds whether the
 Version Packages PR is approved by a human or created by a bot identity. Choosing
 the manual gate does not weaken the token-free publish path.
 
+### The gate is not a property of the release PR, and this entry contradicted itself
+
+Discovered at `0.3.0`, the first release where two obligations in this repository were both
+exercised. **They cannot both be satisfied.**
+
+- This entry says: keep the manual approval on the Version Packages PR.
+- The working agreement says: verify the README's state description **before** publishing —
+  step 3 of the release process, added during `Input` because a stale README is wrong
+  publicly on npmjs.com until the next publish.
+
+Satisfying the second means pushing a README commit onto `changeset-release/main`. Doing so
+makes the **head commit human-authored**, and GitHub's gate applies to bot-authored PRs —
+so the approval requirement silently disappears and the checks start immediately. That is
+exactly what happened here: the maintainer intended to click "Approve and run" and never got
+the chance.
+
+**This is a different failure class from the seven counted above**, and worth separating.
+Every one of those was a verification that did not reach its subject, or reached the wrong
+one — something measured wrongly. Here nothing was measured at all. The control was
+correctly described, correctly relied upon, and **silently removable by an unrelated
+action**. The mechanism simply was not what the document said it was: the gate keys on
+authorship of the head commit, not on the PR being a release.
+
+A decision record containing a contradiction it cannot see is worth more as a finding than
+as a warning, so it is recorded as one rather than patched quietly.
+
+**What to do about it.** Two defensible options; the second is what ships today.
+
+1. **Verify the README on the feature branch, before the changeset lands.** The release
+   branch then never needs a human commit and the gate survives intact. The cost is that
+   the README must describe a version that does not exist yet, which is its own small lie
+   and has to be worded carefully ("ships in the next release").
+2. **Accept that a README fix removes the gate, and say so.** The push is deliberate and
+   rare, the maintainer is already at the keyboard, and the checkpoint can be exercised by
+   choosing when to merge rather than by clicking "Approve and run" — which is what
+   happened at `0.3.0`, deliberately, once the removal was reported.
+
+Option 2 is chosen because the gate's _purpose_ is a human checkpoint immediately before a
+version reaches consumers, and merging is that checkpoint. What was unacceptable was not
+the missing click but that it went missing **without anyone noticing** — the fix is that the
+next person reading this entry knows the cost of that push before they make it.
+
+If a future release wants the click back, push the README fix to the feature branch instead.
+
 ## Dark mode re-points the semantic layer; primitives are immutable
 
 Dark mode is a re-mapping, not a re-palette. Primitives never change — a primitive
