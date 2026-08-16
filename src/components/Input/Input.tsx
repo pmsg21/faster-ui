@@ -116,7 +116,7 @@ function ClearIcon() {
  * to zero height while empty (`empty:mt-0` on a block with no line box), so an
  * error-free field is not paying for the space.
  */
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+export const Input = /* @__PURE__ */ forwardRef<HTMLInputElement, InputProps>(function Input(
   {
     label,
     labelHidden = false,

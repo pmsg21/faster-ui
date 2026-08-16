@@ -60,18 +60,20 @@ export interface IconButtonProps
  * it is for pointer-dense UI (toolbars, table rows); `md`/`lg` are the touch
  * defaults. The floor is asserted in IconButton.cy.tsx, not merely documented.
  */
-export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { variant = 'primary', size = 'md', shape = 'round', icon, className, ...rest },
-  ref
-) {
-  return (
-    <Button
-      {...rest}
-      ref={ref}
-      variant={variant}
-      size={size}
-      startIcon={icon}
-      className={cn(buttonVariants({ variant, size, shape, footprint: 'icon' }), className)}
-    />
-  );
-});
+export const IconButton = /* @__PURE__ */ forwardRef<HTMLButtonElement, IconButtonProps>(
+  function IconButton(
+    { variant = 'primary', size = 'md', shape = 'round', icon, className, ...rest },
+    ref
+  ) {
+    return (
+      <Button
+        {...rest}
+        ref={ref}
+        variant={variant}
+        size={size}
+        startIcon={icon}
+        className={cn(buttonVariants({ variant, size, shape, footprint: 'icon' }), className)}
+      />
+    );
+  }
+);
