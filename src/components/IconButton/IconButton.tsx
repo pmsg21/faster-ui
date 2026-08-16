@@ -46,6 +46,12 @@ export interface IconButtonProps
  * `cn()`/`twMerge` resolves the overlap (radius, padding, min-width). No second
  * style map to keep in sync.
  *
+ * What it does **not** share is the interaction model of `outline`. The icon sets
+ * keep a neutral `line-subtle` rim in every state and wash the fill like a ghost
+ * button, where the labelled `outline` turns its border cyan and leaves the fill
+ * alone. That is a genuine difference in the source, not an oversight, and it was
+ * inherited wrongly at first — see `buttonVariants.ts`.
+ *
  * There is deliberately **no `tone`**: the Figma file has no danger IconButton,
  * and "someone will want it" is not evidence (see docs/decisions.md). The tokens
  * already exist, so adding it later breaks nobody.

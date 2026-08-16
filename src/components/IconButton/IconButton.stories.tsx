@@ -156,6 +156,17 @@ export const Ghost: Story = { args: { variant: 'ghost', icon: <PlusIcon /> } };
 
 export const AllVariants: Story = {
   name: 'All variants',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Hover each one. **`outline` interacts like `ghost`, not like the labelled outline ' +
+          'button:** its rim stays neutral in every state and the fill washes instead. That ' +
+          'is what the icon sets draw — the cyan-border-on-hover treatment belongs to the ' +
+          'labelled button only.',
+      },
+    },
+  },
   render: (args) => (
     <div className="flex flex-wrap items-center gap-4">
       <IconButton {...args} variant="primary" aria-label="Add item" icon={<PlusIcon />} />

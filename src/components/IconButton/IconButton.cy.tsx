@@ -106,6 +106,31 @@ describe('IconButton — geometry', () => {
   });
 });
 
+describe('IconButton — outline interacts like ghost, not like a labelled outline', () => {
+  // Extracted from the icon sets themselves (15:20596 / 20590 / 20584 / 20578)
+  // after the labelled behaviour was inherited by mistake. Only a browser can
+  // check a :hover rule, so this is the one place the difference is verifiable.
+  const NEUTRAL_300 = 'rgb(225, 225, 225)';
+  const NEUTRAL_100 = 'rgb(245, 245, 245)';
+
+  it('keeps a neutral border and washes the fill on hover', () => {
+    mountOnSurface(<IconButton variant="outline" aria-label="Add item" icon={<PlusIcon />} />);
+    cy.findByRole('button').realHover();
+    // Asserted on a fresh query rather than chained off `realHover`: the element
+    // carries `transition-colors`, so the first read catches the starting value.
+    // A re-queried `should` retries until the transition settles.
+    cy.findByRole('button').should('have.css', 'background-color', NEUTRAL_100);
+    cy.findByRole('button').should('have.css', 'border-top-color', NEUTRAL_300);
+  });
+
+  it('keeps the border neutral at rest too', () => {
+    mountOnSurface(<IconButton variant="outline" aria-label="Add item" icon={<PlusIcon />} />);
+    cy.findByRole('button')
+      .should('have.css', 'border-top-color', NEUTRAL_300)
+      .and('have.css', 'background-color', 'rgb(255, 255, 255)');
+  });
+});
+
 describe('IconButton — accessibility in a real browser', () => {
   it('has no violations across the variants (light)', () => {
     mountOnSurface(

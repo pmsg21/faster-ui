@@ -202,6 +202,34 @@ export const buttonVariants = cva(
           'aria-disabled:text-content-disabled aria-disabled:hover:text-content-disabled',
         ],
       },
+
+      // ── Icon footprint: interaction differs from the labelled button ──────
+      // These come last so they win the twMerge, and they exist because the icon
+      // sets are NOT the labelled sets in a square box — extracting them showed a
+      // different interaction model that we had been inheriting incorrectly:
+      //
+      //  - Outline's border stays `line-subtle` in EVERY state. It never turns
+      //    cyan. Instead the fill washes exactly like ghost, so an icon outline
+      //    button reads as a ghost button that happens to have a rim.
+      //  - The glyph stays `content-secondary` throughout. The labelled button
+      //    darkens its label on interaction, but that was OUR substitute for the
+      //    design's cyan hue shift; the icon sets never had a hue shift to
+      //    replace, and neutral-600 already clears AA on both washes (8.00 on
+      //    surface-hover, 6.67 on surface-active). Restating the design here costs
+      //    no contrast.
+      {
+        footprint: 'icon',
+        variant: 'outline',
+        class: [
+          'hover:border-line-subtle hover:bg-surface-hover hover:text-content-secondary',
+          'active:border-line-subtle active:bg-surface-active active:text-content-secondary',
+        ],
+      },
+      {
+        footprint: 'icon',
+        variant: 'ghost',
+        class: ['hover:text-content-secondary', 'active:text-content-secondary'],
+      },
     ],
 
     defaultVariants: {
