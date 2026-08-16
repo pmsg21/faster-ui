@@ -159,6 +159,42 @@ That makes the border load-bearing in dark rather than decorative — an explici
 obligation on Dialog/popover, recorded in [CLAUDE.md](../CLAUDE.md) so the component
 session sees it first.
 
+## Verified by hand, because no gate can
+
+Everything above is measured by machine. This section records what was checked by a
+person, on `Button` and `IconButton`, before the PR opened — kept separately because
+none of it is re-run on any commit, and an unwritten manual check is indistinguishable
+from one that never happened.
+
+**Screen-reader announcement.** Every variant and state was exercised with a screen
+reader. The three that carry information beyond the label:
+
+- **Disabled** announces as disabled while remaining reachable by <kbd>Tab</kbd> — the
+  whole reason for `aria-disabled` over the native attribute. A user finds the control,
+  hears that it is unavailable, and moves on; with the native attribute they would never
+  learn it exists.
+- **Loading** announces busy, and the spinner's hidden text alternative reaches the
+  accessible name, so the state is audible rather than purely visual.
+- **Variant and tone** carry no announcement of their own, correctly: they are emphasis
+  and intent, conveyed visually. The name comes from the label alone — and for
+  `IconButton`, from the required `aria-label`.
+
+**Two defects that every gate passed.** Both were found here, by comparing the component
+against the design rather than against its own tests:
+
+1. **`IconButton` was missing the `Fillet` capability** — the design documents round _and_
+   square; only round existed. Documented in section prose with no variant property, so a
+   variant-driven extraction reported success.
+2. **`IconButton`'s `outline` interacted like a labelled outline** — a cyan border on
+   hover, no fill wash — where the icon sets keep a neutral rim and wash the fill. The
+   values were inherited from `Button` rather than extracted.
+
+At the time both were live, the suite was fully green: 97 unit tests, 43 browser tests,
+axe in both modes, the whole contrast contract. None could fail, because none knew the
+capability existed or that the inherited values were wrong. **Absence is what a test
+suite cannot assert** — which is the argument for the hand-test gate in
+[CLAUDE.md](../CLAUDE.md), now with evidence rather than a hypothesis behind it.
+
 ## The contract
 
 [`src/styles/contrast-contract.ts`](../src/styles/contrast-contract.ts) turns this

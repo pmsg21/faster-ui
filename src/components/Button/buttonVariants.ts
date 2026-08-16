@@ -24,6 +24,14 @@ import { cva } from 'class-variance-authority';
 export const buttonVariants = cva(
   [
     'relative inline-flex cursor-pointer items-center justify-center gap-1',
+    // box-border fixes nothing today — browsers already give form controls
+    // border-box in their user-agent sheet. It is here because the published
+    // stylesheet ships no reset, so without it the control would be *borrowing*
+    // that guarantee from an environment we do not control. A consumer whose reset
+    // says `* { box-sizing: content-box }` — plenty of older codebases do — would
+    // silently break the min-width arithmetic taken from Figma (106/98/62 include
+    // padding and border). One class, no behaviour change, one fewer assumption.
+    'box-border',
     'font-sans whitespace-nowrap select-none',
     'transition-colors',
     // Focus is an ADDITION: the Figma file draws no focus state. It cannot be the

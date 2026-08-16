@@ -173,9 +173,12 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - [docs/decisions.md](docs/decisions.md) — the "why" record (pnpm vs npm CLI,
   `@theme` vs `inline`, Cypress's own TS program, two `tsc -p`, `pre-push` scope).
 - [docs/patterns.md](docs/patterns.md) — the working detail extracted from what was
-  actually built. The **testing** section is complete (the Jest/Cypress split, the
-  hover-transition false-green, real keyboard events, component-scoped axe); the
-  component-API sections land when Button's PR closes.
+  actually built: the guardrail principle, variant axes, the two-audience
+  vocabulary rule, deliberate omissions, sizing guidance, and the testing patterns
+  (Jest/Cypress split, the hover-transition false-green, real keyboard events,
+  harness sanity checks, component-scoped axe).
+- [docs/design-fidelity.md](docs/design-fidelity.md) — the seven places the shipped
+  component differs from the Figma file, each with its measured ratio and criterion.
 - [docs/tokens.md](docs/tokens.md) — the naming scheme, layer rules, and the
   primitive→semantic map (light and dark).
 - [docs/accessibility.md](docs/accessibility.md) — the contrast record: the
@@ -224,6 +227,12 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   rarely in the button. At three components that is eye-checkable; at thirty it is
   not. Chromatic against the Storybook build CI already produces is the natural fit.
   Whether it lands depends on time remaining after Dialog.
+- **The no-preflight verification covered Chromium only.** `dist/styles.css` ships
+  without Tailwind's preflight, and a consumer-shaped page confirmed the controls
+  hold their geometry, font, margins and line-height without it — but in one
+  engine. Safari and Firefox user-agent sheets differ on form-control margins, so
+  the claim is narrower than "verified in browsers". `box-border` is set explicitly
+  by the component for the same reason; the rest is still borrowed from the UA sheet.
 - **The completeness guard covers colour only.** `parseTheme` filters on
   `--color-*`, so `--radius-*`, `--text-*` and `--shadow-*` are invisible to it: a
   radius or type token can be added with no decision recorded and nothing goes red.

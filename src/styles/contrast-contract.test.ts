@@ -15,7 +15,10 @@ import {
 } from './contrast-contract';
 import type { ResolvedTheme } from './contrast-contract';
 
-const stylesheet = readFileSync(join(__dirname, 'index.css'), 'utf8');
+// tokens.css, not index.css: the token layers are what the contract measures, and
+// they are also exactly what ships as dist/styles.css. Parsing the development
+// entry would mean asserting against a file consumers never receive.
+const stylesheet = readFileSync(join(__dirname, 'tokens.css'), 'utf8');
 const theme = parseTheme(stylesheet);
 
 describe('WCAG maths', () => {

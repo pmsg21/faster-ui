@@ -32,6 +32,81 @@ gate that stopped checking. Note also the version pins that follow from this:
 `addon-interactions` resolves, so each pair shares one instance rather than
 installing two that disagree.
 
+## Distribution: a stylesheet import, because the package has no runtime
+
+Consumers write one line, `import '@pmsg21/faster-ui/styles.css'`, and that line is not
+a shortcoming to apologise for — it is the only alternative to shipping a runtime.
+
+**npm has no mechanism for applying CSS.** Installing a package puts files in
+`node_modules`; something has to tell the bundler they exist. Either the consumer
+imports the stylesheet, or the library injects styles from JavaScript at runtime. There
+is no third option. This is the standard for libraries that avoid CSS-in-JS — Mantine
+documents `import '@mantine/core/styles.css'` as required for all packages, with its
+CSS-module styles bundled before publishing.
+
+The rejected alternative is injecting a `<style>` tag on mount, and it fails on three
+counts that matter to the kind of product this system is for:
+
+- **FOUC under SSR.** HTML arrives before JavaScript, so controls render unstyled until
+  hydration. On an eCommerce page that is layout shift — a Core Web Vitals cost paid on
+  every first visit.
+- **Content Security Policy.** Many organisations prohibit inline styles outright. The
+  package would simply not work there, and nothing in its API would explain why.
+- **The consumer loses control of the cascade.** Import order is significant — Mantine
+  documents that its styles must be imported before the consumer's or they override
+  them. With JS injection the styles land whenever a component happens to mount, and no
+  amount of care in the consumer's stylesheet can reliably win.
+
+**The CSS import is the price of having no runtime.** We chose a package that does not
+execute JavaScript to paint, and the consumer writes one line in exchange for SSR
+without flash, CSP compatibility, and control over the cascade.
+
+Two consequences of that choice are recorded where they bite. The stylesheet is compiled
+from `dist/index.js` rather than from `src`, so stories and test fixtures cannot leak
+utilities into a consumer's CSS. And it ships **without preflight**: a reset is an
+opinion about the document, and the document is not ours — installing three components
+must not restyle a consumer's headings, lists and forms. The components therefore set
+what they depend on rather than inheriting it, which is why `box-border` is declared
+explicitly even though every browser already gives form controls border-box.
+
+## The bundle is dominated by `tailwind-merge`, and that is the deal we took
+
+Measured, not assumed:
+
+| Entry                    | Brotli  |
+| ------------------------ | ------- |
+| Full library (ESM)       | 9.41 kB |
+| `import { Button }` only | 9.27 kB |
+| Stylesheet               | 4.92 kB |
+
+Two things fall out of that, and both are worth saying plainly rather than presenting
+9.41 kB as a win.
+
+**Tree-shaking works, and it barely matters.** Dropping `IconButton` saves 140 bytes,
+because `IconButton` composes `Button` and shares its `cva` matrix — the thing that makes
+the two components consistent is also the thing that makes them inseparable. That is what
+composition costs, and it is the right trade at this size; a second, independent style
+map would shave bytes by reintroducing the drift the composition exists to prevent. The
+`import: "{ Button }"` entry stays in the budget so the number is watched as more
+components land — the day it diverges sharply from the full bundle, something has stopped
+being shared.
+
+**Almost all of it is one dependency.** `tailwind-merge` is ~14.6 kB brotli on its own
+(unminified); `clsx` is 0.2 kB and `cva` 0.9 kB. Our two components are a rounding error
+on top of it. So the honest framing is that this package's floor is the cost of
+`cn()`, not the cost of the components.
+
+We keep it, because what it buys is a stated rule rather than a convenience: **a
+consumer's `className` wins.** Without conflict-aware merging, `<Button
+className="rounded-full">` emits two competing rules and stylesheet order decides — the
+kind of bug a consumer cannot fix from their own code. It also underpins the Design
+Fidelity stories, which render the Figma-faithful variants through `className` alone
+rather than through escape-hatch props. Both were live defects before the merger was
+taught our token scales (see `src/lib/cn.ts`), so this is not a hypothetical.
+
+Worth revisiting if the component count grows without the dependency's share falling —
+at thirty components it is negligible; at three it is the whole bundle.
+
 ## Design tokens: `@theme`, not `@theme inline`
 
 Tokens are defined in Tailwind v4's `@theme` block in `src/styles/index.css`.
@@ -300,13 +375,49 @@ Here the re-check removed it. `content-secondary` on the two washes measures 8.0
 6.67, comfortably over AA, so restating the design costs no contrast — the design was
 simply right, and we had been overriding it for a reason that did not apply.
 
-**It was found by hand-testing, not by any gate**, and that closes a loop. The rule that a
-component is exercised by hand before its PR opens was justified in the abstract — some
-things only surface with eyes and a keyboard. This is the case that earns it. Every gate
-was green: 97 unit tests, 43 browser tests, axe in both modes, a full contrast contract.
-None of them could fail, because none of them knew the capability existed. Only a person
-comparing the component against the design could see what was absent, and absence is
-precisely what a test suite cannot assert.
+**Both were found by hand-testing, not by any gate**, and that closes a loop. The rule
+that a component is exercised by hand before its PR opens was justified in the abstract —
+some things only surface with eyes and a keyboard. These are the cases that earn it:
+**two real defects on the first component**, one missing capability and one wrong
+interaction model, while every gate was green (97 unit tests, 43 browser tests, axe in
+both modes, a full contrast contract). None could fail, because none knew the capability
+existed or that the inherited values were wrong.
+
+The general form is worth stating, because it bounds what testing can do for a design
+system: **a test suite asserts that what exists behaves correctly. It cannot assert that
+nothing is missing.** Only a person holding the component against its source can see an
+absence. What was checked by hand is recorded in
+[accessibility.md](accessibility.md#verified-by-hand-because-no-gate-can), because a
+manual check nobody wrote down is indistinguishable from one that never happened.
+
+## The hardcoded-colour rule exempts stories, because a coincidence of values is not a shared decision
+
+A raw colour outside the primitive layer fails the build. The Design Fidelity stories
+break that rule in exactly one place, and the exemption is narrower than "documentation
+is special".
+
+Those rows render the Figma-faithful version beside the shipped one, through the
+`className` escape hatch and no public API. That works for every row but one: the danger
+ghost pressed surface. The design specifies `danger-300`; we ship `danger-200`. The value
+being illustrated is one the token layer **deliberately no longer contains**.
+
+The first attempt reached for `danger-solid-disabled`, a token that happens to resolve to
+the same `danger-300`. Two things are wrong with that. It asserts the system contains a
+colour when the row exists to say it does not. And it rests on a coincidence: the day
+either token is re-pointed, the comparison silently starts illustrating something else,
+with no test able to notice — the row would still render, just wrongly.
+
+That shape is already named in this repo. `SHARED_VALUE` in the contrast contract exists
+because "these two tokens have the same value" is a claim a comment cannot keep honest,
+so it is asserted instead. **A coincidence of values is not a shared decision.** The
+difference here is that there is no decision to assert: `danger-solid-disabled` and the
+Figma pressed surface have nothing to do with each other beyond a matching hex.
+
+So the faithful side uses a literal, `bg-[#FFCCD2]`, traceable to its source node, and
+the lint rule exempts `*.stories.tsx`. The boundary holds because of what a story is: it
+consumes components rather than defining them, it never enters the published bundle, and
+a fidelity row's entire job is to render values from _outside_ our token layer. A raw
+colour in a component is a leak; in a fidelity story it is the subject matter.
 
 ## Not every convention earns a gate
 

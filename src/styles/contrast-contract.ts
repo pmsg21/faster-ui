@@ -94,7 +94,7 @@ const CSS_VAR_REFERENCE = /^var\(\s*--([\w-]+)\s*\)$/;
 const MAX_VAR_HOPS = 10;
 
 /**
- * Parse `src/styles/index.css` into resolved `#rrggbb` values for every
+ * Parse `src/styles/tokens.css` into resolved `#rrggbb` values for every
  * `--color-*` semantic token, in both modes. Semantic tokens reference
  * primitives via `var(--x)`; this follows that chain to a concrete hex.
  */

@@ -75,16 +75,40 @@ is only reliable there. Security of the supply chain over purity of tooling.
 
 ## Consuming this package
 
-Tailwind v4 does not scan `node_modules` by default, so a consuming app must
-opt in or the component classes get purged:
+Two lines. **No Tailwind required** — the package ships compiled CSS, so it works in
+any project, on any version, or none.
+
+```js
+import '@pmsg21/faster-ui/styles.css';
+
+import { Button } from '@pmsg21/faster-ui';
+```
+
+The stylesheet carries the design tokens and the component classes. It deliberately
+carries **no CSS reset**: installing three components should not restyle your
+headings, lists and forms.
+
+Dark mode is one attribute on the root element — no provider, no re-render:
+
+```html
+<html data-theme="dark"></html>
+```
+
+### Optional: compile our classes in your own build
+
+If you are already on Tailwind v4, you can skip our stylesheet's utilities and let
+your build generate them instead, so shared utilities are emitted once rather than
+twice:
 
 ```css
 @import 'tailwindcss';
 @source '../node_modules/@pmsg21/faster-ui/dist/**/*.js';
+@import '@pmsg21/faster-ui/styles.css'; /* still needed: the design tokens */
 ```
 
-The consumer must also be on Tailwind v4. A v3 app will not pick up these
-classes.
+This works because our class names survive into the bundle as static strings —
+verified, not assumed. It is an optimisation, not a requirement, and it is the only
+path that needs Tailwind at all.
 
 ## Releasing
 
