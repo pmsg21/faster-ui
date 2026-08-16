@@ -3,3 +3,6 @@ export type { ButtonProps, ButtonSize, ButtonTone, ButtonVariant } from './compo
 
 export { IconButton } from './components/IconButton';
 export type { IconButtonProps, IconButtonShape, IconButtonVariant } from './components/IconButton';
+
+export { Input } from './components/Input';
+export type { InputProps, InputSize } from './components/Input';

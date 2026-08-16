@@ -31,14 +31,14 @@ Semantic colour tokens are grouped by role under Tailwind's `--color-*` namespac
 Tailwind utility is `<utility-prefix>-<token-name>`, so the utility a group actually
 generates is the group name with the utility's own prefix in front of it:
 
-| Group                    | Covers                                                                                                       | Written as                                  |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| `surface-*`              | backgrounds (base, raised, overlay, sunken, muted, hover, active)                                            | `bg-surface-base`                           |
-| `content-*`              | foregrounds (primary, secondary, disabled, on-accent, accent, danger)                                        | `text-content-primary`                      |
-| `line-*`                 | borders (subtle, default, disabled, focus, danger)                                                           | `border-line-subtle`                        |
-| `accent-*` / `danger-*`  | interactive fills and their states (solid, hover, active, disabled; `subtle`/`subtle-active` on danger only) | `bg-accent-solid`                           |
-| `focus` / `focus-strong` | the decorative ring, and the indicator of record                                                             | `ring-focus-strong`, `outline-focus-strong` |
-| `radius-*`               | corner radius by intent (`control`, `full`)                                                                  | `rounded-control`                           |
+| Group                   | Covers                                                                                                       | Written as                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `surface-*`             | backgrounds (base, raised, overlay, sunken, muted, hover, active)                                            | `bg-surface-base`                           |
+| `content-*`             | foregrounds (primary, secondary, disabled, on-accent, accent, danger)                                        | `text-content-primary`                      |
+| `line-*`                | borders (subtle, default, disabled, focus, danger)                                                           | `border-line-subtle`                        |
+| `accent-*` / `danger-*` | interactive fills and their states (solid, hover, active, disabled; `subtle`/`subtle-active` on danger only) | `bg-accent-solid`                           |
+| `focus-strong`          | the focus indicator of record                                                                                | `ring-focus-strong`, `outline-focus-strong` |
+| `radius-*`              | corner radius by intent (`control`, `full`)                                                                  | `rounded-control`                           |
 
 Names describe **intent, never appearance** (`accent-solid`, not `cyan-600`), so a
 re-skin is a mapping change and a consumer never encodes a colour.
@@ -62,44 +62,77 @@ against unused tokens is not to create them.
 
 ## Semantic → primitive map (light)
 
-| Token                   | → primitive | Note                                           |
-| ----------------------- | ----------- | ---------------------------------------------- |
-| `surface-base`          | neutral-50  | app background                                 |
-| `surface-raised`        | white       | card, default field                            |
-| `surface-overlay`       | white       | dialog, popover                                |
-| `surface-sunken`        | neutral-100 | recessed well                                  |
-| `surface-muted`         | neutral-200 | disabled fill                                  |
-| `surface-hover`         | neutral-100 | ghost/row hover                                |
-| `surface-active`        | neutral-300 | ghost/row pressed — one step past hover        |
-| `content-primary`       | neutral-700 | body, headings                                 |
-| `content-secondary`     | neutral-600 | remapped from 500 for AA (see a11y)            |
-| `content-disabled`      | neutral-400 | WCAG-exempt                                    |
-| `content-on-accent`     | neutral-700 | dark label; white fails on the ramp (see a11y) |
-| `content-accent`        | primary-600 | ghost/link text — brand conflict               |
-| `content-danger`        | danger-700  | error text — brand conflict                    |
-| `line-subtle`           | neutral-300 | default field border, dividers                 |
-| `line-default`          | neutral-400 | stronger/hover field border                    |
-| `line-disabled`         | neutral-200 |                                                |
-| `line-focus`            | primary-600 | focus outline colour                           |
-| `line-danger`           | danger-600  | invalid field border                           |
-| `accent-solid`          | primary-600 | button primary (600/500/700/300 across states) |
-| `accent-solid-hover`    | primary-500 | hover lightens (source)                        |
-| `accent-solid-active`   | primary-700 | active darkens (source)                        |
-| `accent-solid-disabled` | primary-300 |                                                |
-| `danger-solid`          | danger-600  | full states — danger is a Button _tone_        |
-| `danger-solid-hover`    | danger-500  |                                                |
-| `danger-solid-active`   | danger-700  |                                                |
-| `danger-solid-disabled` | danger-300  |                                                |
-| `danger-subtle`         | danger-100  | danger ghost hover wash                        |
-| `danger-subtle-active`  | danger-200  | danger ghost pressed — lifted from 300 (a11y)  |
-| `focus`                 | primary-500 | decorative only; fails 1.4.11 (see a11y)       |
-| `focus-strong`          | neutral-700 | the focus indicator of record                  |
+| Token                   | → primitive | Note                                                 |
+| ----------------------- | ----------- | ---------------------------------------------------- |
+| `surface-base`          | neutral-50  | app background                                       |
+| `surface-raised`        | white       | card, default field                                  |
+| `surface-overlay`       | white       | dialog, popover                                      |
+| `surface-sunken`        | neutral-100 | recessed well                                        |
+| `surface-muted`         | neutral-50  | disabled field fill — re-pointed from 200, see below |
+| `surface-hover`         | neutral-100 | ghost/row hover                                      |
+| `surface-active`        | neutral-300 | ghost/row pressed — one step past hover              |
+| `content-primary`       | neutral-700 | body, headings                                       |
+| `content-secondary`     | neutral-600 | remapped from 500 for AA (see a11y)                  |
+| `content-disabled`      | neutral-400 | WCAG-exempt                                          |
+| `content-on-accent`     | neutral-700 | dark label; white fails on the ramp (see a11y)       |
+| `content-accent`        | primary-600 | ghost/link text — brand conflict                     |
+| `content-danger`        | danger-700  | error text — brand conflict                          |
+| `line-subtle`           | neutral-300 | default field border, dividers                       |
+| `line-default`          | neutral-400 | stronger/hover field border                          |
+| `line-disabled`         | neutral-200 |                                                      |
+| `line-focus`            | primary-600 | focus outline colour                                 |
+| `line-danger`           | danger-600  | invalid field border                                 |
+| `accent-solid`          | primary-600 | button primary (600/500/700/300 across states)       |
+| `accent-solid-hover`    | primary-500 | hover lightens (source)                              |
+| `accent-solid-active`   | primary-700 | active darkens (source)                              |
+| `accent-solid-disabled` | primary-300 |                                                      |
+| `danger-solid`          | danger-600  | full states — danger is a Button _tone_              |
+| `danger-solid-hover`    | danger-500  |                                                      |
+| `danger-solid-active`   | danger-700  |                                                      |
+| `danger-solid-disabled` | danger-300  |                                                      |
+| `danger-subtle`         | danger-100  | danger ghost hover wash                              |
+| `danger-subtle-active`  | danger-200  | danger ghost pressed — lifted from 300 (a11y)        |
+| `focus-strong`          | neutral-700 | the focus indicator of record                        |
 
 There is deliberately **no `accent-subtle`**. It existed on the assumption that the
 accent ghost wash was a brand tint; extracting Button showed it is neutral
 (`surface-hover` / `surface-active`), leaving the token with no consumer, so it was
 removed — the first application of the deprecation policy, made while the cost was
 zero. Only the danger tone tints its wash.
+
+There is also deliberately **no `focus`** (primary-500). It was reserved for the
+decorative cyan halo Figma draws on a focused field, and Input — the only component
+that would ever have consumed it — does not ship that halo, because a 16%-alpha glow
+underneath a neutral 2px ring adds nothing anyone can see. Removed for the same reason
+as `accent-subtle`, but **not** at the same cost: `./styles.css` is exported now, so
+this removal is communicated in a changeset rather than made silently. The cyan is
+still on a focused field, as `line-focus` on the inner border.
+
+## A shared token is not re-pointed for one consumer
+
+Input's disabled text is drawn at neutral-300. `content-disabled` is neutral-400, and it
+stays there, because `Button` consumes it too — re-pointing would move a colour under a
+component that never asked for the change. Input uses `content-disabled` as it is, one
+ramp step darker than drawn. Nothing turns on it: WCAG exempts disabled controls, so no
+criterion is at stake in either direction.
+
+The general rule, because it will recur: **when a component's drawn value doesn't match
+a shared token and nothing turns on the difference, the token wins and the difference is
+recorded here.** Re-pointing a token to satisfy one consumer is how a semantic layer
+stops being semantic — the name goes on meaning "disabled foreground" while the value
+starts meaning "whatever the most recent component wanted".
+
+Note what this is **not**. It is not a design-fidelity divergence, and it is deliberately
+absent from [design-fidelity.md](design-fidelity.md). That register documents places we
+concluded the _design_ should not be implemented as drawn, each turning on a WCAG
+criterion. Here we concluded nothing about the design; we concluded something about the
+system. Different kinds of claim, so different documents.
+
+The counter-example is in the same paragraph as the rule, which is the point:
+`surface-muted` **was** re-pointed (neutral-200 → neutral-50) for Input, and that is
+consistent, because it had **no other consumer**. A token with one consumer is a guess
+being tested; a token with two is a contract. `accent-subtle` was the same lesson in its
+strongest form — the first real consumer proved the guess wrong and the token went.
 
 ## Dark mode
 

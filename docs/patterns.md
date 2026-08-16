@@ -43,6 +43,43 @@ have.
 not a public prop — it distinguishes the space the control occupies, which the consumer
 never needs to name. `IconButton` passes it; `ButtonProps` does not mention it.
 
+## The `cva` lives in its own file, for either of two reasons
+
+`buttonVariants.ts` sits beside `Button.tsx` rather than inside it, and `inputVariants.ts`
+does the same beside `Input.tsx`. Same structure, **different justifications**, and the rule
+is the union rather than the first case:
+
+1. **A sibling component re-invokes the same matrix.** `IconButton` imports `buttonVariants`
+   and calls it with the internal `footprint: 'icon'` axis. The thing that keeps the two
+   components consistent is that there is exactly one style map; a second one would
+   reintroduce the drift the composition exists to prevent. Here the split is what makes the
+   sharing possible at all.
+2. **The matrix is large enough to bury the component.** `Input` has no sibling and shares
+   its `cva` with nothing. It is a separate file because the component's own body is
+   `useId` wiring, `aria-describedby` assembly and focus management, and interleaving eighty
+   lines of class strings with that makes both harder to read.
+
+Worth stating explicitly because the first reason is the memorable one and generalises badly:
+someone who has only seen `Button` would conclude the split _means_ "something else composes
+this", and either add a needless file or, worse, read `inputVariants.ts` as a promise that a
+sibling is coming.
+
+## Redeclaring a prop means checking what it shadows
+
+Extending a native element's attribute interface and then redeclaring a prop of the same name
+is routine — `Button` does it for `disabled`. The trap is that the collisions are not always
+the ones you would predict, and they surface as a type error rather than as anything the
+design review would catch:
+
+- **`size`** on `<input>` is a native attribute meaning _width in characters_, unrelated to a
+  design system's `sm`/`md`/`lg`.
+- **`prefix`** is on React's `HTMLAttributes` for **every** element — it is an RDFa attribute,
+  and nothing about the name suggests that.
+
+Both had to be omitted from `InputProps`. So: before adding a prop whose name reads like plain
+English, check whether the DOM already claims it. `Omit<..., 'size' | 'prefix'>` with a comment
+saying why is cheaper than the next reader wondering whether the omission was deliberate.
+
 ## Two audiences, two vocabularies
 
 The same concept gets different names depending on who reads it, and that is deliberate
@@ -183,19 +220,38 @@ already holds a keyboard-derived ring leaves the ring in place — correct brows
 behaviour, and a trap when writing the "no ring on click" assertion. Click a control that
 was not already keyboard-focused.
 
-### axe in a component test: disable the page rules, never the interesting ones
+### An inapplicable rule and an accepted exemption must not be written the same way
 
-`landmark-one-main` and `page-has-heading-one` cannot apply to a component mounted in
-isolation — there is no page here to have a main landmark or an `h1`. Those two are
-disabled; everything else stays on, `color-contrast` above all, since it is the reason to
-run axe in a browser at all.
+Both come out as `{ enabled: false }`, and that shared spelling is the whole problem: it
+makes an accessibility decision look like configuration, and it makes the question "how
+many rules are off in this project?" one with a quietly growing answer. Three kinds live
+in [`a11y.config.ts`](../a11y.config.ts), shared by Storybook and Cypress so a rule cannot
+be off in one runner for a reason the other has never heard of:
 
-Where a contrast exemption is deliberate and recorded (the danger tone's non-solid label,
-row 4 of [design-fidelity.md](design-fidelity.md)), `color-contrast` is disabled **for
-that assertion only**, with the exemption still enforced by the contrast contract — which
-pins the exact ratio and fails if it drifts in either direction. Disabling a rule and
-losing the check are not the same thing, but they look identical unless the second
-instrument is named.
+1. **Inapplicable — declared once, globally.** `landmark-one-main`, `page-has-heading-one`
+   and `region` ask questions about page composition. A component mounted in isolation has
+   no page, so they have nothing to evaluate. Not overridden — inapplicable. The test for
+   membership is written next to the list: _would turning this off hide a defect in the
+   component itself?_ If yes, it does not belong there.
+2. **An accepted exemption — never global, and never a disable.** Reachable only through
+   `checkA11yWithAcceptedContrast` / `storyAcceptedContrast`, which take the measured
+   ratio, the register row and the reason as **required** arguments. The rule stays
+   **enabled** and is narrowed by selector to skip one named region.
+3. **A Design Fidelity story**, whose "As drawn in Figma" column exists to render values
+   the token layer rejected. Its own factory, no ratio, and still a narrowing — the
+   "Shipped" column beside it stays checked.
+
+**Narrowing beats disabling, and the difference is not cosmetic.** Switching
+`color-contrast` off to hide one known pair also hides every _future_ failure in that
+story. That is the same shape as a stale exemption in the contrast contract, which is
+already solved by making it fail once it stops being necessary. The narrowing is proven by
+provocation: with the exemption in place, an unmarked low-contrast element in the same
+mount is still reported, and removing that element turns the test red — so the assertion
+is not vacuous.
+
+`region` is the reason this got restructured. It was disabled in one spec of three, purely
+because Button and IconButton render no bare text and never tripped it. A rule discovered
+per component instead of declared once is the tell that the two kinds had been conflated.
 
 Print the violations. By default a failure reports a count — "2 accessibility violations
 were detected" — and the detail stays in the browser's command log, invisible in CI, which

@@ -1,5 +1,17 @@
+import { ACCEPTED_CONTRAST_ATTRIBUTE, CONTENT_DANGER_ON_WHITE } from '../../../a11y.config';
+import { checkA11y, checkA11yWithAcceptedContrast } from '../../../cypress/support/a11y';
 import { Button } from './Button';
 import type { ButtonSize, ButtonVariant } from './Button';
+
+/**
+ * The library's one accepted contrast exemption, narrowed to a marked wrapper. Only the
+ * blast radius is local; the ratio, register row and reason are shared with Input's use
+ * of the same decision.
+ */
+const BUTTON_DANGER_EXEMPTION = {
+  ...CONTENT_DANGER_ON_WHITE,
+  exemptSelector: `[${ACCEPTED_CONTRAST_ATTRIBUTE}]`,
+};
 
 /**
  * These specs deliberately assert what jsdom CANNOT: real computed geometry, real
@@ -19,28 +31,8 @@ function mountOnSurface(node: React.ReactNode, theme: 'light' | 'dark' = 'light'
   cy.mount(<div className="bg-surface-base flex flex-wrap items-start gap-4 p-6">{node}</div>);
 }
 
-/**
- * Page-level rules that cannot apply to a component mounted in isolation — there
- * is no page here to have a main landmark or an h1. Everything else stays on,
- * including colour-contrast, which is the reason to run axe in a real browser.
- */
-const PAGE_RULES_NOT_APPLICABLE = {
-  rules: {
-    'landmark-one-main': { enabled: false },
-    'page-has-heading-one': { enabled: false },
-  },
-};
-
 const SIZES: ButtonSize[] = ['sm', 'md', 'lg'];
 const VARIANTS: ButtonVariant[] = ['primary', 'outline', 'ghost', 'link'];
-
-/** Runs axe and prints the offending rules and nodes to the CI log, not just a count. */
-function checkA11y(options: Record<string, unknown> = PAGE_RULES_NOT_APPLICABLE) {
-  cy.injectAxe();
-  cy.checkA11y(undefined, options, (violations) => {
-    cy.task('logA11yViolations', violations, { log: false });
-  });
-}
 
 describe('Button — mounting and rendering', () => {
   it('mounts and shows its label', () => {
@@ -378,30 +370,21 @@ describe('Button — accessibility in a real browser', () => {
     checkA11y();
   });
 
-  it('flags only the recorded danger exemption on the non-solid variants', () => {
-    // axe independently confirms the number we computed: `content-danger`
-    // (danger-700) on white is 4.21, under the 4.5 AA bar. That exemption is
-    // deliberate and recorded — red carries meaning on a destructive control, and
-    // danger-700 is the darkest step the ramp offers (docs/design-fidelity.md, row 4).
-    //
-    // colour-contrast is disabled HERE ONLY, and the exemption does not go
-    // unwatched: the contrast contract pins it at 4.21 and fails if it drifts in
-    // either direction, which is the more precise instrument.
+  it('accepts the recorded danger exemption on the non-solid variants', () => {
+    // `content-danger` (danger-700) on white is 4.21, under the 4.5 AA bar — row 4 of
+    // docs/design-fidelity.md. The rule stays ENABLED and is narrowed to the marked
+    // region, so any other contrast failure among these buttons is still reported. The
+    // ratio, row and reason come from the shared decision in a11y.config.ts.
     mountOnSurface(
-      <>
+      <div data-a11y-accepted-contrast className="flex flex-wrap items-start gap-4">
         {(['outline', 'ghost', 'link'] as const).map((variant) => (
           <Button key={variant} variant={variant} tone="danger">
             {variant}
           </Button>
         ))}
-      </>
+      </div>
     );
-    checkA11y({
-      rules: {
-        ...PAGE_RULES_NOT_APPLICABLE.rules,
-        'color-contrast': { enabled: false },
-      },
-    });
+    checkA11yWithAcceptedContrast(BUTTON_DANGER_EXEMPTION);
   });
 
   it('has no violations while loading', () => {

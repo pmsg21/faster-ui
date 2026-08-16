@@ -177,7 +177,7 @@ export interface Pair {
 const BRAND_FOREGROUND_ON_WHITE =
   'brand hue as foreground fails on white at every ramp step; mitigated at component level (icon + neutral text, or a tinted surface)';
 const BRAND_FOCUS_RING =
-  'brand cyan focus ring is below SC 1.4.11 on white; focus visibility is completed at Input time with a neutral offset/halo';
+  'brand cyan is below SC 1.4.11 on white; it is the decorative INNER border of a focused field, and focus-strong (required, below) is the indicator that carries the criterion';
 const TRANSIENT_PRESSED = 'transient pressed state; above the 3.0 non-text floor';
 const DISABLED_EXEMPT = 'WCAG exempts disabled controls';
 
@@ -329,15 +329,12 @@ export const PAIRS: Pair[] = [
   },
 
   // Focus indicator (SC 1.4.11, non-text 3.0) — brand cyan on white is below
-  // the bar (accepted, mitigated at Input); on dark it clears it.
+  // the bar (accepted, mitigated at Input); on dark it clears it. This is the
+  // INNER border of a focused field, which is decorative: the neutral ring below
+  // is what actually satisfies the criterion. The former `focus` (primary-500)
+  // pair was removed with the token — see docs/decisions.md.
   {
     foreground: 'line-focus',
-    background: 'surface-raised',
-    light: acceptBelow('UI', BRAND_FOCUS_RING),
-    dark: requireLevel('UI'),
-  },
-  {
-    foreground: 'focus',
     background: 'surface-raised',
     light: acceptBelow('UI', BRAND_FOCUS_RING),
     dark: requireLevel('UI'),
@@ -373,11 +370,16 @@ export const IGNORED: Record<string, string> = {
   'surface-muted': 'covered as a surface in the content-disabled pairs',
   'accent-solid-disabled': 'disabled fill; any label on it is content-disabled, which WCAG exempts',
   'danger-solid-disabled': 'disabled fill; any label on it is content-disabled, which WCAG exempts',
+  // The three field borders, each with a DIFFERENT reason — the earlier wording
+  // lumped them together as "below 3:1, verified at component level", which is
+  // measurably untrue of line-danger (3.47 light / 5.53 dark, i.e. it passes).
   'line-subtle':
-    'field/divider border; non-text contrast is verified at component level (1.4.11 nuance)',
-  'line-default': 'field border; non-text contrast is verified at component level',
+    'resting field border, 1.31 light / 1.89 dark — below 3:1 in BOTH modes, so a resting field is never identifiable by its border alone; Input carries that with a required visible label and its fill (Input.test.tsx, Input.cy.tsx)',
+  'line-default':
+    'hover field border, 1.64 light / 5.03 dark — fails only in light, so the same component-level mitigation as line-subtle applies there',
   'line-disabled': 'disabled field border; WCAG exempts disabled controls',
-  'line-danger': 'invalid-field border; non-text contrast is verified at component level',
+  'line-danger':
+    'invalid-field border, 3.47 light / 5.53 dark — CLEARS SC 1.4.11 unaided in both modes; ignored because the contract measures text pairs, not because it is exempt',
 };
 
 /**

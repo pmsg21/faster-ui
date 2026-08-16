@@ -27,10 +27,18 @@ is the rate, not any single instance.
 Each would have "worked" under npm's flat hoisting and surfaced later — for a
 library, in a consumer's install, where the cost is someone else's broken build.
 `axe-core` is the sharpest of the three: it did not fail loudly, it failed as a
-gate that stopped checking. Note also the version pins that follow from this:
-`axe-core` matches what `jest-axe` resolves and `@storybook/test` matches what
-`addon-interactions` resolves, so each pair shares one instance rather than
-installing two that disagree.
+gate that stopped checking.
+
+Note also the version pins that follow from this. The earlier wording here said `axe-core`
+"matches what `jest-axe` resolves … so **both test runners** measure with the same engine."
+That was true of Jest and Cypress and **never true of Storybook**, whose a11y addon declares
+its own `^4.2.0` and resolved a different minor entirely. The sentence described a guarantee
+narrower than it claimed, which is the failure mode this whole document keeps recording.
+
+What is guaranteed now is stated as a mechanism rather than a coincidence of resolution: a
+`pnpm.overrides` entry pins **`axe-core` to one version for every consumer** — `jest-axe`,
+`cypress-axe` and `@storybook/addon-a11y` alike. `@storybook/test` still matches what
+`addon-interactions` resolves, which is a separate pair and unaffected.
 
 ## Distribution: a stylesheet import, because the package has no runtime
 
@@ -73,28 +81,46 @@ explicitly even though every browser already gives form controls border-box.
 
 Measured, not assumed:
 
-| Entry                    | Brotli  |
-| ------------------------ | ------- |
-| Full library (ESM)       | 9.41 kB |
-| `import { Button }` only | 9.27 kB |
-| Stylesheet               | 4.92 kB |
+| Entry                        | Brotli   |
+| ---------------------------- | -------- |
+| Full library (ESM)           | 10.49 kB |
+| `import { Button }` only     | 9.59 kB  |
+| `import { IconButton }` only | 9.65 kB  |
+| `import { Input }` only      | 9.99 kB  |
+| Stylesheet                   | 5.41 kB  |
 
 Two things fall out of that, and both are worth saying plainly rather than presenting
-9.41 kB as a win.
+10.49 kB as a win.
 
-**Tree-shaking works, and it barely matters.** Dropping `IconButton` saves 140 bytes,
-because `IconButton` composes `Button` and shares its `cva` matrix — the thing that makes
-the two components consistent is also the thing that makes them inseparable. That is what
-composition costs, and it is the right trade at this size; a second, independent style
-map would shave bytes by reintroducing the drift the composition exists to prevent. The
-`import: "{ Button }"` entry stays in the budget so the number is watched as more
-components land — the day it diverges sharply from the full bundle, something has stopped
-being shared.
+**Tree-shaking works — but it did not, and the budget is what caught it.** An earlier
+version of this section claimed tree-shaking worked on the evidence that "dropping
+`IconButton` saves 140 bytes." That number was real and the conclusion drawn from it was
+wrong. When `Input` landed, the `import { Button }` entry jumped from 9.27 kB to 10.30 kB
+and blew its budget — almost exactly the amount `Input` had added to the _full_ bundle.
+Probing each export in turn showed every single-component import sitting within 200 bytes
+of the whole library: **nothing was being dropped, and the 140 bytes had been noise.**
+
+The cause is a call expression at module scope. `export const Button = forwardRef(…)` is a
+function call, and a bundler cannot prove a call is side-effect-free, so it is retained —
+and retaining it retains everything it references, which is the entire component and its
+`cva` matrix. `sideEffects` in `package.json` does not help, because that governs whole
+_modules_ and the published bundle is one flat file. Annotating each component
+`/* @__PURE__ */ forwardRef(…)` gives the bundler the permission it cannot infer, and the
+numbers above are the result: a consumer importing one component now pays for one
+component.
+
+Worth keeping for its shape rather than its bytes. This is the "green gate that never ran
+its subject" failure one more time, in its most deceptive form yet — the gate _did_ run,
+it reported a real measurement, and the measurement was of nothing. A 140-byte delta looks
+like a small saving; it was actually the absence of any saving at all. **A number being
+real does not make the inference from it real**, and the only reason it surfaced is that
+the budget was written as a hard threshold rather than a tracked figure.
 
 **Almost all of it is one dependency.** `tailwind-merge` is ~14.6 kB brotli on its own
-(unminified); `clsx` is 0.2 kB and `cva` 0.9 kB. Our two components are a rounding error
-on top of it. So the honest framing is that this package's floor is the cost of
-`cn()`, not the cost of the components.
+(unminified); `clsx` is 0.2 kB and `cva` 0.9 kB. Our three components are a rounding error
+on top of it — which is also why the shaking defect above hid for so long: when the floor
+is ~9.4 kB, a component failing to drop moves the total by a few percent. So the honest
+framing is that this package's floor is the cost of `cn()`, not the cost of the components.
 
 We keep it, because what it buys is a stated rule rather than a convenience: **a
 consumer's `className` wins.** Without conflict-aware merging, `<Button
@@ -109,7 +135,7 @@ at thirty components it is negligible; at three it is the whole bundle.
 
 ## Design tokens: `@theme`, not `@theme inline`
 
-Tokens are defined in Tailwind v4's `@theme` block in `src/styles/index.css`.
+Tokens are defined in Tailwind v4's `@theme` block in `src/styles/tokens.css`.
 `@theme inline` bakes each token's value directly into the generated utility at
 build time, which freezes it: a utility such as `bg-surface-base` would keep its
 light-mode value even after `[data-theme='dark']` is applied. Plain `@theme`
@@ -506,6 +532,162 @@ component proved it is a neutral wash (`neutral-100`/`neutral-300`), leaving the
 with no consumer. Because the `./styles.css` export is still withdrawn, nothing external
 can depend on it, so it is simply removed. Exercising the policy while the cost is zero
 is the point — the mechanism gets proven before it is load-bearing.
+
+### The second application is the one that costs something
+
+`focus` (primary-500) was the token reserved for the cyan halo Figma draws under a focused
+field — `0 0 1px 1px rgba(21,197,206,.16)`. Extracting `Input` showed we would not ship it:
+a 16%-alpha cyan glow beneath a neutral 2px focus ring is invisible to a sighted user and
+misleading in the token layer, since it implies the system offers a focus affordance that
+nothing consumes. So it goes, the same way `accent-subtle` did.
+
+The difference is that **this one is no longer free**, and that difference is the whole
+reason to record it. `accent-subtle` was removed while `./styles.css` was still withdrawn
+from the package exports — nothing outside the repo could name it. That export is live as
+of `0.1.0`, so `--color-focus` has been in a published stylesheet, and a consumer could be
+referencing it today. Removing it silently would be exactly the breakage the policy exists
+to prevent.
+
+So the policy's step 2 does real work for the first time: the removal is stated in the
+changeset, which carries it into `CHANGELOG.md` and the release notes rather than leaving
+it in a commit nobody reads. Steps 1 and 3 do not apply — there is no replacement to
+deprecate toward and nothing mechanical to codemod, because the token had no consumer to
+migrate. Step 4 is satisfied by the version bump.
+
+Worth naming the general shape: **the cost of removing something is set by what has already
+been published, not by how many internal consumers it has.** Both tokens had zero consumers
+in this repository. Only one of them was safe to delete quietly, and the thing that
+distinguished them was a line in `package.json`.
+
+## The Figma file we extract from is a duplicate, and that is not a mistake
+
+The task brief links `WYuHdUuUq31HzkdJhoKwXl`; every node id in this repository resolves
+against `Zz10of3a8j8G9Qki5FAeba`, whose title ends `…Community---Copy-`. The mismatch is
+recorded here because it looks exactly like an error and is not one.
+
+The brief's file is a **Community** file, and requesting it through the Figma MCP server
+returns _"you don't have edit access to this file"_ — the read paths that expose variant
+properties, text nodes and computed styles need editor access. Duplicating it into the
+account grants that access without altering anything. So the copy is the working file, and
+the node ids in [tokens.md](tokens.md), [design-fidelity.md](design-fidelity.md) and the
+component sources are all relative to it.
+
+The reason to write this down is that the alternative is worse than the inconvenience: a
+reviewer comparing a cited node id against the brief's URL finds nothing there, and the most
+natural conclusion is that the values were transcribed from the wrong source.
+
+## `Number` and the prefix/suffix addon segments are extracted, specified, and not shipped
+
+The Input page carries seven component sets. Three of them — `Number` (`11:9747`) and the
+standalone `Prefix` (`11:10945`) / `Suffix` (`11:11523`) — are implemented by nothing, on
+purpose.
+
+**They are not what the brief asked for.** It asks for "Input" and enumerates the states
+(default, hover, focus, disabled, error), which map one-to-one onto the Figma `State` axis.
+Prefix segments and numeric steppers appear nowhere in it. Building them would have added
+divergence rows — the stepper's 26×14 controls miss SC 2.5.8 outright — for capability nobody
+requested, and the divergence register is only meaningful while it stays proportionate.
+
+**They are also genuinely different components.** This is the part worth keeping:
+
+- `Prefix & Suffix` (`11:10336`) draws affixes **inline and unfilled** — inside the field's
+  own padding, transparent, `neutral-500`, 8px from the text, content `¥` / `CNY`.
+- `Prefix` (`11:10952`) draws a **filled addon segment** — `neutral-50` fill, its own
+  `rounded-l-[3px]` corner, flush against the border at `left-px`, 12px from the text, content
+  `http://`. `Suffix` mirrors it.
+
+The +4px set width (194 vs 190) is the tell. These are two treatments for two jobs — units
+versus URL fragments — and treating them as one axis with two positions would have shipped the
+wrong one. Which is the same lesson `IconButton` produced twice: **a variant matrix is not the
+whole specification.** Had `Prefix & Suffix` been read as "`Prefix` plus `Suffix`", the
+extraction would have reported complete success.
+
+**What a consumer gets today if they pass `type="number"`.** It works. `Input` spreads every
+unrecognised prop onto the control, so the field accepts numeric input and the browser
+supplies **its own** spinner. That is worth stating precisely, because "not implemented" and
+"implemented differently from the mock" are different claims and a reader could reasonably
+infer the wrong one: the _capability_ is there, the _drawn control_ is not.
+
+**Why the stepper is a component and not a prop — the strongest half of the argument.** It is
+not extra props on a field. It is two more nested interactive controls, each needing its own
+accessible name, its own place in the tab order, and a keyboard contract the field does not
+have (<kbd>↑</kbd>/<kbd>↓</kbd>, arguably Page Up/Down and Home/End) — plus `min`/`max`/`step`
+clamping.
+
+And it carries a tension nothing else in this project has: **at `sm` the field is 24px tall,
+so two stacked stepper buttons cannot both clear the 24×24 of SC 2.5.8 without redrawing the
+control.** Every other divergence here was resolvable by the smallest change that clears a
+criterion. This one is not resolvable at all at that size — the design and the criterion are
+in genuine conflict, and shipping it would mint the register's first row of that kind for
+capability the brief never asked for.
+
+That is the `IconButton`-not-`iconOnly` case again, and more sharply. A flag cannot express a
+control with its own targets, its own keyboard contract and its own unresolvable geometry.
+
+What follows is that the addon is an **input group** — a layout composing a field with
+adjoining content, each with its own surface and border radius — and belongs in its own
+component rather than a prop on this one. That is the `IconButton`-not-`iconOnly` argument
+again: a flag cannot express the thing that actually differs. There is also no combined addon
+set anywhere on the page, so nothing in the source says addons compose the way inline affixes
+demonstrably do.
+
+Recorded rather than merely omitted, because "we did not think of it" and "we decided against
+it" are indistinguishable in a codebase.
+
+## A Serious violation sat in Storybook's panel for a component and a half
+
+Hand-testing `Input` found a **Serious** `color-contrast` violation on every error story:
+`content-danger` on white, 4.21 against the 4.5 AA bar. It is not a defect — it is the
+exemption already recorded as row 4 of [design-fidelity.md](design-fidelity.md), pinned by
+the contrast contract, and accepted because `danger-700` is the darkest red the ramp offers.
+
+The finding is not the violation. It is that **the same violation had been showing on
+`Button`'s danger stories since `Button` shipped**, through a full hand-test pass, and
+nobody had looked. Confirmed by provoking it: re-enabling the rule on Button's own spec
+reports `color-contrast (serious)` on all three non-solid danger variants. The a11y addon
+runs at axe defaults with no parameters anywhere, so the panel had been saying so the whole
+time.
+
+Two instruments were each individually fine and collectively silent. The **CI gate** passed
+because the exemption was declared, which is what a declared exemption is for. The **panel**
+reported it honestly to nobody. Neither was wrong; between them a real number went
+unexamined for a component and a half. That is a better argument for opening the panel
+routinely as part of hand-testing than any rule could be — and it is why the hand-test list
+in [CLAUDE.md](../CLAUDE.md) now names it explicitly.
+
+The remedy was not to disable the rule, which would have made two silences instead of one.
+See [patterns.md](patterns.md) on the three kinds of axe configuration and why an
+inapplicable rule and an accepted exemption must not be written the same way.
+
+### The runners were on two axe engines, and now they are pinned to one
+
+While auditing the above: `@storybook/addon-a11y` declared `axe-core@^4.2.0` and resolved
+**4.13.0**, while `jest-axe` pinned **4.9.1** and Cypress injected
+`node_modules/axe-core/axe.min.js` — the same 4.9.1. The panel a maintainer reads and the
+gate that blocks a merge were running different engines, and rule sets change between minors.
+
+That splits every accessibility claim in the project in two: what CI verifies, and what a
+reviewer sees. The two can disagree, and the disagreement surfaces exactly where it does most
+damage — someone opening Storybook and finding something CI called clean. It is the same
+shape as the entry above it: **two verifications that look like one.**
+
+Fixed rather than recorded, because it is a `pnpm.overrides` entry and not a redesign:
+
+```json
+"pnpm": { "overrides": { "axe-core": "4.13.0" } }
+```
+
+All three consumers now resolve 4.13.0, verified down to the version string inside the
+`axe.min.js` that Cypress actually injects — the file, not the manifest, because the manifest
+is what was lying in the first place.
+
+The direction was deliberate: **move Jest and Cypress up rather than hold Storybook back.**
+The newer engine checks more, and pinning to the older one would have traded a real
+verification for a quieter one. `jest-axe@9.0.0` pins `axe-core` at exactly `4.9.1` in its own
+dependencies, so the override forces it past its declared pin — worth naming as the risk this
+carries. It was taken with the whole suite as evidence: 153 Jest tests, 77 Cypress tests, and
+**no new violations** on the newer engine. A newer engine finding nothing is a result worth
+stating, because the alternative outcome would have been findings rather than obstacles.
 
 ## Contrast is a contract, not a document
 

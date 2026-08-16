@@ -76,7 +76,7 @@ function Spinner() {
  *
  * The consumer supplies only what the component cannot know — the label.
  */
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
     variant,
     tone,
