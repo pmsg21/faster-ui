@@ -507,6 +507,59 @@ with no consumer. Because the `./styles.css` export is still withdrawn, nothing 
 can depend on it, so it is simply removed. Exercising the policy while the cost is zero
 is the point — the mechanism gets proven before it is load-bearing.
 
+## The Figma file we extract from is a duplicate, and that is not a mistake
+
+The task brief links `WYuHdUuUq31HzkdJhoKwXl`; every node id in this repository resolves
+against `Zz10of3a8j8G9Qki5FAeba`, whose title ends `…Community---Copy-`. The mismatch is
+recorded here because it looks exactly like an error and is not one.
+
+The brief's file is a **Community** file, and requesting it through the Figma MCP server
+returns _"you don't have edit access to this file"_ — the read paths that expose variant
+properties, text nodes and computed styles need editor access. Duplicating it into the
+account grants that access without altering anything. So the copy is the working file, and
+the node ids in [tokens.md](tokens.md), [design-fidelity.md](design-fidelity.md) and the
+component sources are all relative to it.
+
+The reason to write this down is that the alternative is worse than the inconvenience: a
+reviewer comparing a cited node id against the brief's URL finds nothing there, and the most
+natural conclusion is that the values were transcribed from the wrong source.
+
+## `Number` and the prefix/suffix addon segments are extracted, specified, and not shipped
+
+The Input page carries seven component sets. Three of them — `Number` (`11:9747`) and the
+standalone `Prefix` (`11:10945`) / `Suffix` (`11:11523`) — are implemented by nothing, on
+purpose.
+
+**They are not what the brief asked for.** It asks for "Input" and enumerates the states
+(default, hover, focus, disabled, error), which map one-to-one onto the Figma `State` axis.
+Prefix segments and numeric steppers appear nowhere in it. Building them would have added
+divergence rows — the stepper's 26×14 controls miss SC 2.5.8 outright — for capability nobody
+requested, and the divergence register is only meaningful while it stays proportionate.
+
+**They are also genuinely different components.** This is the part worth keeping:
+
+- `Prefix & Suffix` (`11:10336`) draws affixes **inline and unfilled** — inside the field's
+  own padding, transparent, `neutral-500`, 8px from the text, content `¥` / `CNY`.
+- `Prefix` (`11:10952`) draws a **filled addon segment** — `neutral-50` fill, its own
+  `rounded-l-[3px]` corner, flush against the border at `left-px`, 12px from the text, content
+  `http://`. `Suffix` mirrors it.
+
+The +4px set width (194 vs 190) is the tell. These are two treatments for two jobs — units
+versus URL fragments — and treating them as one axis with two positions would have shipped the
+wrong one. Which is the same lesson `IconButton` produced twice: **a variant matrix is not the
+whole specification.** Had `Prefix & Suffix` been read as "`Prefix` plus `Suffix`", the
+extraction would have reported complete success.
+
+What follows is that the addon is an **input group** — a layout composing a field with
+adjoining content, each with its own surface and border radius — and belongs in its own
+component rather than a prop on this one. That is the `IconButton`-not-`iconOnly` argument
+again: a flag cannot express the thing that actually differs. There is also no combined addon
+set anywhere on the page, so nothing in the source says addons compose the way inline affixes
+demonstrably do.
+
+Recorded rather than merely omitted, because "we did not think of it" and "we decided against
+it" are indistinguishable in a codebase.
+
 ## Contrast is a contract, not a document
 
 The accessibility decisions (which brand conflicts are accepted, which failures are

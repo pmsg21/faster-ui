@@ -20,7 +20,7 @@ noise.
 **Token layering.** Two layers; a component only ever sees the top one.
 
 - _Primitives_ — raw values, no meaning. Private. In `:root` in
-  `src/styles/index.css`, and **immutable across modes** (a ramp is a fact). Never
+  `src/styles/tokens.css`, and **immutable across modes** (a ramp is a fact). Never
   referenced by a component.
 - _Semantic tokens_ — encode intent (`surface-base`, `content-danger`). The public
   API. Declared in `@theme`. **Dark mode re-points these** in the
@@ -32,9 +32,12 @@ noise.
   primitives.
 
 **Tailwind v4.** No `tailwind.config.ts` — tokens live in `@theme` in
-`src/styles/index.css`. Use `@theme`, **never `@theme inline`**: inline bakes
-values at build time and freezes `bg-surface-base` at its light value under
-`[data-theme='dark']`.
+`src/styles/tokens.css`, which `src/styles/index.css` imports after `tailwindcss`.
+`index.css` is the **development** entry (Storybook, Jest, Cypress); `tokens.css`
+alone is what ships as `dist/styles.css`, because a consuming app runs its own
+`@import 'tailwindcss'` and our `@source` globs are ours, not theirs. Use `@theme`,
+**never `@theme inline`**: inline bakes values at build time and freezes
+`bg-surface-base` at its light value under `[data-theme='dark']`.
 
 **A variant matrix is not the whole specification.** Extraction is exhaustive **per
 component**, and it fails in two shapes — both of which report success:
@@ -158,6 +161,15 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   that is a finding to raise before proceeding. Writing a scope note and moving on
   leaves the agreement describing something other than what shipped, and the person
   who agreed to it is the last to find out.
+- **This file is updated by the work that changes it, not afterwards.** `CLAUDE.md`
+  went stale inside a single component: it described an empty `src/index.ts`, a
+  withdrawn `./styles.css` export and a lint gate still "to add" — all three already
+  untrue the moment `Button` merged, and all three found by the _next_ session
+  reading them as current. That is worse than an out-of-date `docs/` page, because
+  this is the file a cold session trusts before it has looked at anything. So the
+  entry describing a thing changes in the same PR as the thing, and "update the
+  handoff" is never a follow-up task. A handoff document that lags reality is not
+  documentation; it is fiction with authority.
 - **A component is hand-tested before its PR opens.** Commit freely on the branch —
   granular history is wanted — but when the component, its tests and its stories are
   done, **stop and say it's ready**, then wait. The maintainer runs Storybook, works
@@ -177,8 +189,11 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   vocabulary rule, deliberate omissions, sizing guidance, and the testing patterns
   (Jest/Cypress split, the hover-transition false-green, real keyboard events,
   harness sanity checks, component-scoped axe).
-- [docs/design-fidelity.md](docs/design-fidelity.md) — the seven places the shipped
-  component differs from the Figma file, each with its measured ratio and criterion.
+- [docs/design-fidelity.md](docs/design-fidelity.md) — every place a shipped
+  component differs from the Figma file, each with its measured ratio and criterion,
+  split per component as well as listed in full. A row is a **decision**, not an
+  occurrence: a component re-applying an earlier decision extends that row rather
+  than minting a new one.
 - [docs/tokens.md](docs/tokens.md) — the naming scheme, layer rules, and the
   primitive→semantic map (light and dark).
 - [docs/accessibility.md](docs/accessibility.md) — the contrast record: the
@@ -186,13 +201,15 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 
 ## Current state
 
-- **Done — scaffold and CI/CD complete on `main`.** All five gates green (format,
-  lint, two-program typecheck, Jest + coverage, build) and proven by provoked
-  failures; three husky hooks proven. The release pipeline is proven end to end:
-  `@pmsg21/faster-ui@0.0.1` is published to npm via **OIDC trusted publishing** (no
-  `NPM_TOKEN`) with a signed **provenance attestation**, and Storybook deploys to
-  GitHub Pages. Artifacts and links are in
-  [docs/release-verification.md](docs/release-verification.md).
+- **Done — scaffold and CI/CD complete on `main`.** `ci.yml` runs **three jobs**
+  covering every step the brief mandates: _quality_ (install, format check, lint,
+  two-program typecheck, Jest + coverage), _component-tests_ (Cypress, with the binary
+  cached and `cypress install` run explicitly), and _build_ (library build, Storybook
+  build, `size-limit` budget). `release.yml` adds the npm publish and the Pages
+  deploy. Each gate is proven by a provoked failure, not an observed pass; three husky
+  hooks proven. The release pipeline is proven end to end via **OIDC trusted
+  publishing** (no `NPM_TOKEN`) with a signed **provenance attestation**. Artifacts and
+  links are in [docs/release-verification.md](docs/release-verification.md).
 - **Done — the token layer (merged via #8).** Primitives (8 ramps ×
   8 + black/white, the type scale, the four elevation shadows) in `:root`; semantic
   `@theme` tokens for the intents Button/Input/Dialog consume (neutral, `accent`,
@@ -202,20 +219,31 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   a contrast regression _or_ an undeclared token — both proven by provoked failures.
   The primary button ships **dark text on cyan** (white fails AA at every ramp step);
   full record in [docs/accessibility.md](docs/accessibility.md).
-- **Next — `Button`, `Input`, `Dialog`,** consuming semantic tokens only. When the
-  first component imports the stylesheet, restore the `./styles.css` export (see the
-  `vite.config.ts` TODO) and add the hardcoded-colour lint gate.
+- **Done — `Button` and `IconButton` (merged via #9), released as
+  `@pmsg21/faster-ui@0.1.0`.** Both consume semantic tokens only. Shipping them
+  discharged three things this section used to list as pending: `src/index.ts` exports
+  a real surface, the `./styles.css` export is restored and the build emits CSS, and
+  the hardcoded-colour lint gate is live in `eslint.config.js` (with three exemptions
+  — `src/styles/**`, `*.stories.tsx`, and the test files; see
+  [docs/decisions.md](docs/decisions.md)). Seven design-fidelity divergences recorded.
+  Two defects that every gate passed were found by hand-testing — the missing `Fillet`
+  capability and an inherited-but-wrong `outline` interaction model.
+- **Next — `Input`, then `Dialog`.** `Input`'s Figma page is seven component sets and
+  237 components; only `Size` survives as a prop, because `State`, `Typing`,
+  `Text Entered` and `State 2` are all runtime. The `Number` stepper and the filled
+  prefix/suffix **addon segments** are extracted and specified but deliberately not
+  shipped — recorded in [docs/decisions.md](docs/decisions.md) so the omission reads as
+  a decision, not a gap.
 
 ## Known gaps / state to remember
 
-- `src/index.ts` is empty `export {}`; the Jest (`index.test.ts`) and Cypress
-  (`index.cy.tsx`) smoke specs assert that and fail deliberately when the first
-  real export lands.
+- `src/index.test.ts` pins the public surface with an exact-match array, so **adding a
+  component means updating that array or the suite goes red**. That is deliberate: it
+  makes an accidental export — or an accidental _omission_ — impossible to merge
+  quietly. `index.cy.tsx` is the browser-side counterpart.
 - `collectCoverageFrom` excludes `*.cy.tsx`; the `coverageThreshold` (branches 80,
-  functions/lines/statements 85) is now **live** — `contrast-contract.ts` is the first
-  counted source (96/89/100/100). `index.ts` is excluded, so it stays empty-safe.
-- `./styles.css` export removed until the build emits CSS — restore when the first
-  component imports the stylesheet (TODO in `vite.config.ts`).
+  functions/lines/statements 85) is live. `index.ts` is excluded from collection, so
+  the barrel never dilutes the numbers.
 - CI caches the Cypress binary at `~/.cache/Cypress` and runs `cypress install`
   explicitly, because a warm pnpm cache skips the postinstall that downloads it.
 - Cypress 13 warns React 19 / Vite 6 aren't officially supported (works; a Cypress
@@ -252,9 +280,27 @@ overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is impercept
   nothing else separates an elevated surface from the page.
 - **Focus-ring visibility (Input).** The brand cyan ring is below SC 1.4.11 on white
   (≤2.12:1). Input completes focus with a neutral offset/halo, not the cyan alone.
-- **Non-text border contrast (Input).** `line-subtle`/`line-default`/`line-danger`
-  are below 3:1 on white; the field must be identifiable by more than its border (label,
-  fill, focus), verified in the component's own tests.
-- **Ghost/link button labels use a neutral foreground**, not `content-accent` — cyan fails
-  AA on white (2.12) and on `accent-subtle` (2.02). Cyan is for links and non-text accent.
-  Revisit with the component in front of us when Button is built.
+- **Non-text border contrast (Input) — narrower than first written.** The earlier
+  version of this entry said `line-subtle`, `line-default` _and_ `line-danger` all
+  measure below 3:1 on white. Measured from the shipped tokens, that is wrong for the
+  third:
+
+  | Border token                 | on white (light) | on `#1F1F1F` (dark) |
+  | ---------------------------- | ---------------- | ------------------- |
+  | `line-subtle` (neutral-300)  | **1.31** ❌      | **1.89** ❌         |
+  | `line-default` (neutral-400) | **1.64** ❌      | 5.03 ✅             |
+  | `line-danger` (danger-600)   | **3.47** ✅      | 5.53 ✅             |
+
+  `line-danger` clears SC 1.4.11 in both modes — it is the same 3.47 already recorded
+  in [docs/design-fidelity.md](docs/design-fidelity.md) as white-on-danger-600. So the
+  obligation is real but applies to the **resting and hover** states only: an _error_
+  field is identifiable by its border alone, a resting one is not. The mitigation
+  (required visible label, fill, focus treatment) therefore has to carry default and
+  hover, and is verified in the component's own tests. A known-gap that overstates its
+  scope misdirects the work as surely as one that misses.
+
+- **Ghost/link button labels use a neutral foreground** — _discharged by `Button`._ Cyan
+  fails AA on white (2.12), so non-solid labels ship `content-secondary` darkening to
+  `content-primary`. The token this bullet originally cited, `accent-subtle`, no longer
+  exists: extracting `Button` proved the accent ghost wash is neutral, leaving it with no
+  consumer, and it was removed as the deprecation policy's first (free) application.

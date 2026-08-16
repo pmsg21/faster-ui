@@ -43,6 +43,43 @@ have.
 not a public prop — it distinguishes the space the control occupies, which the consumer
 never needs to name. `IconButton` passes it; `ButtonProps` does not mention it.
 
+## The `cva` lives in its own file, for either of two reasons
+
+`buttonVariants.ts` sits beside `Button.tsx` rather than inside it, and `inputVariants.ts`
+does the same beside `Input.tsx`. Same structure, **different justifications**, and the rule
+is the union rather than the first case:
+
+1. **A sibling component re-invokes the same matrix.** `IconButton` imports `buttonVariants`
+   and calls it with the internal `footprint: 'icon'` axis. The thing that keeps the two
+   components consistent is that there is exactly one style map; a second one would
+   reintroduce the drift the composition exists to prevent. Here the split is what makes the
+   sharing possible at all.
+2. **The matrix is large enough to bury the component.** `Input` has no sibling and shares
+   its `cva` with nothing. It is a separate file because the component's own body is
+   `useId` wiring, `aria-describedby` assembly and focus management, and interleaving eighty
+   lines of class strings with that makes both harder to read.
+
+Worth stating explicitly because the first reason is the memorable one and generalises badly:
+someone who has only seen `Button` would conclude the split _means_ "something else composes
+this", and either add a needless file or, worse, read `inputVariants.ts` as a promise that a
+sibling is coming.
+
+## Redeclaring a prop means checking what it shadows
+
+Extending a native element's attribute interface and then redeclaring a prop of the same name
+is routine — `Button` does it for `disabled`. The trap is that the collisions are not always
+the ones you would predict, and they surface as a type error rather than as anything the
+design review would catch:
+
+- **`size`** on `<input>` is a native attribute meaning _width in characters_, unrelated to a
+  design system's `sm`/`md`/`lg`.
+- **`prefix`** is on React's `HTMLAttributes` for **every** element — it is an RDFa attribute,
+  and nothing about the name suggests that.
+
+Both had to be omitted from `InputProps`. So: before adding a prop whose name reads like plain
+English, check whether the DOM already claims it. `Omit<..., 'size' | 'prefix'>` with a comment
+saying why is cheaper than the next reader wondering whether the omission was deliberate.
+
 ## Two audiences, two vocabularies
 
 The same concept gets different names depending on who reads it, and that is deliberate
