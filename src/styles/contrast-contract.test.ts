@@ -5,6 +5,7 @@ import {
   ALLOWED_PREFIX_COLLISIONS,
   colorTokens,
   contrastRatio,
+  findAlphaTokensInPairs,
   findBrokenSharedValueClaims,
   findCollidingTokenNames,
   findStaleReferences,
@@ -87,6 +88,19 @@ describe('parseTheme', () => {
     const empty = parseTheme('/* no blocks here */');
     expect(colorTokens(empty)).toHaveLength(0);
   });
+
+  // A translucent token must reach the theme, or the completeness guard cannot see
+  // it. Before 8-digit hex was accepted this resolved to null and the token vanished
+  // silently — invisible to `findUnaccountedTokens`, which exists precisely so a gap
+  // cannot hide.
+  it('resolves an 8-digit hex so a translucent token stays visible to the guards', () => {
+    const withAlpha = parseTheme(`
+      :root { --black-alpha-30: #0000004d; }
+      @theme { --color-scrim: var(--black-alpha-30); }
+    `);
+    expect(withAlpha.light['scrim']).toBe('#0000004d');
+    expect(colorTokens(withAlpha)).toContain('scrim');
+  });
 });
 
 describe('the shipped stylesheet honours the contract', () => {
@@ -113,6 +127,10 @@ describe('the shipped stylesheet honours the contract', () => {
 
   it('names no token after a colour-utility prefix (no stuttering utilities)', () => {
     expect(findCollidingTokenNames(theme)).toEqual([]);
+  });
+
+  it('measures no translucent token (a ratio against alpha is a wrong number)', () => {
+    expect(findAlphaTokensInPairs(theme)).toEqual([]);
   });
 });
 
@@ -188,6 +206,15 @@ describe('the guards actually bite', () => {
     const diverged = clone();
     diverged.dark['surface-overlay'] = '#000000'; // no longer mirrors surface-raised
     expect(findBrokenSharedValueClaims(diverged).join('\n')).toMatch(/surface-overlay/);
+  });
+
+  it('flags a translucent token that reaches a pair', () => {
+    const translucent = clone();
+    // `relativeLuminance` reads the first six digits, so this would measure as if it
+    // were opaque #1f1f1f — a confident, plausible, WRONG ratio. A wrong number that
+    // passes is worse than a missing one, because nothing asks about it again.
+    translucent.light['content-primary'] = '#1f1f1f80';
+    expect(findAlphaTokensInPairs(translucent)).toContain('content-primary');
   });
 
   it('catches a token defined only in the dark block (a hole in the guard)', () => {

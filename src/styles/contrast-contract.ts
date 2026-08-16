@@ -89,7 +89,24 @@ function parseDeclarations(blockContents: string): Record<string, string> {
   return declarations;
 }
 
-const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+/**
+ * `#rrggbb` or `#rrggbbaa`.
+ *
+ * The 8-digit form is accepted so a token carrying alpha — the modal scrim — is
+ * VISIBLE to the completeness guard. It matters that this is about visibility and
+ * not about measurement: before this, `resolveToHex` returned null for anything
+ * that was not exactly six digits, so such a token was silently dropped from the
+ * parsed theme, `colorTokens` never listed it, and `findUnaccountedTokens` could
+ * not flag it. A colour token invisible to the guard whose entire purpose is that
+ * a gap cannot hide is the worst possible shape for this file to have.
+ *
+ * Alpha is deliberately NOT interpreted. `relativeLuminance` reads the first six
+ * digits, so an 8-digit token would measure as if it were opaque — a wrong number
+ * that looks like a right one. `findAlphaTokensInPairs` makes that unreachable
+ * rather than commenting on it.
+ */
+const HEX_COLOR = /^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const HEX_COLOR_WITH_ALPHA = /^#[0-9a-fA-F]{8}$/;
 const CSS_VAR_REFERENCE = /^var\(\s*--([\w-]+)\s*\)$/;
 const MAX_VAR_HOPS = 10;
 
@@ -357,6 +374,48 @@ export const PAIRS: Pair[] = [
     light: requireLevel('UI'),
     dark: requireLevel('UI'),
   },
+
+  // ── The dark-elevation obligation, discharged as an assertion ──────────────
+  // In dark, surface-base / -raised / -overlay all resolve to #1F1F1F and
+  // elevation-4 over that measures ~1.05:1, so a dialog separates from the page
+  // by NEITHER tint NOR shadow. Its border is the only thing left, which makes it
+  // load-bearing rather than decorative — and therefore a boundary SC 1.4.11
+  // governs, measured against the page BEHIND the dialog rather than its own fill.
+  //
+  // `require` in dark is the whole point: this is the one border in the system that
+  // may not rest on an exemption. line-subtle's neutral-600 would measure 1.89 here;
+  // re-pointing line-overlay at it fails CI instead of quietly un-discharging the
+  // obligation the token layer handed to this component.
+  //
+  // Light is `accept` rather than `exempt` so the 1.05 stays MEASURED. White on the
+  // page is invisible by design — Figma draws no stroke, and separation comes from
+  // the scrim and the shadow — but an invisible border and a forgotten one look
+  // identical in a diff, and only one of them has a number attached.
+  {
+    foreground: 'line-overlay',
+    background: 'surface-base',
+    light: acceptBelow(
+      'UI',
+      'deliberately invisible in light: the dialog is white on white, exactly as drawn, and separation is carried by the scrim and elevation-4. The border exists in both modes and is load-bearing only in dark'
+    ),
+    dark: requireLevel('UI'),
+  },
+
+  // The Warning dialog's glyph, on the dialog surface it sits on. Accepted below
+  // the non-text bar because the graphic is DECORATIVE (aria-hidden; the meaning is
+  // in the body text, the destructive action and role="alertdialog"), and SC 1.4.11
+  // governs graphics required to understand the content. No step of the warning ramp
+  // clears 3:1 on white — 700 reaches only 2.12 — so this is a palette limit, not a
+  // mapping mistake, and it is recorded with its number rather than hidden in IGNORED.
+  {
+    foreground: 'content-warning',
+    background: 'surface-overlay',
+    light: acceptBelow(
+      'UI',
+      'decorative glyph, aria-hidden and asserted so in Dialog.test.tsx; meaning is carried by the body text, the destructive action and role="alertdialog". No warning step clears 3:1 on white (700 = 2.12)'
+    ),
+    dark: requireLevel('UI'),
+  },
 ];
 
 /**
@@ -380,6 +439,8 @@ export const IGNORED: Record<string, string> = {
   'line-disabled': 'disabled field border; WCAG exempts disabled controls',
   'line-danger':
     'invalid-field border, 3.47 light / 5.53 dark — CLEARS SC 1.4.11 unaided in both modes; ignored because the contract measures text pairs, not because it is exempt',
+  scrim:
+    'the modal scrim is translucent (#0000004d), and WCAG contrast is defined between OPAQUE colours — it has no ratio until composited, so pairing it would produce a confident wrong number. It also seats no content: it dims the page behind the dialog and everything readable sits on surface-overlay above it. `findAlphaTokensInPairs` enforces that this stays out of PAIRS rather than trusting this sentence',
 };
 
 /**
@@ -509,6 +570,35 @@ export function findCollidingTokenNames(theme: ResolvedTheme): string[] {
       COLOR_UTILITY_PREFIXES.some(
         (prefix) => token.startsWith(`${prefix}-`) && !(prefix in ALLOWED_PREFIX_COLLISIONS)
       )
+    )
+    .sort();
+}
+
+/**
+ * Tokens used in a PAIR that resolve to a colour carrying alpha.
+ *
+ * WCAG contrast is defined between two opaque colours; a translucent one has no
+ * ratio until it is composited over something. `relativeLuminance` reads only the
+ * first six hex digits, so pairing an 8-digit token would produce a confident,
+ * plausible, wrong number — and a wrong number that passes is worse than a missing
+ * one, because nothing ever asks about it again.
+ *
+ * The 8-digit form exists in this file so the completeness guard can SEE such a
+ * token, not so the contract can measure it. This keeps those two things apart by
+ * construction rather than by remembering.
+ */
+export function findAlphaTokensInPairs(theme: ResolvedTheme): string[] {
+  const paired = new Set<string>();
+  for (const pair of PAIRS) {
+    paired.add(pair.foreground);
+    paired.add(pair.background);
+  }
+  return [...paired]
+    .filter((token) =>
+      (['light', 'dark'] as const).some((mode) => {
+        const value = theme[mode][token];
+        return value !== undefined && HEX_COLOR_WITH_ALPHA.test(value);
+      })
     )
     .sort();
 }

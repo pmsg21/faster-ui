@@ -34,8 +34,9 @@ generates is the group name with the utility's own prefix in front of it:
 | Group                   | Covers                                                                                                       | Written as                                  |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
 | `surface-*`             | backgrounds (base, raised, overlay, sunken, muted, hover, active)                                            | `bg-surface-base`                           |
-| `content-*`             | foregrounds (primary, secondary, disabled, on-accent, accent, danger)                                        | `text-content-primary`                      |
-| `line-*`                | borders (subtle, default, disabled, focus, danger)                                                           | `border-line-subtle`                        |
+| `content-*`             | foregrounds (primary, secondary, disabled, on-accent, accent, danger, warning)                               | `text-content-primary`                      |
+| `line-*`                | borders (subtle, default, disabled, focus, danger, overlay)                                                  | `border-line-subtle`                        |
+| `scrim`                 | the modal backdrop — the one translucent token                                                               | `bg-scrim`                                  |
 | `accent-*` / `danger-*` | interactive fills and their states (solid, hover, active, disabled; `subtle`/`subtle-active` on danger only) | `bg-accent-solid`                           |
 | `focus-strong`          | the focus indicator of record                                                                                | `ring-focus-strong`, `outline-focus-strong` |
 | `radius-*`              | corner radius by intent (`control`, `full`)                                                                  | `rounded-control`                           |
@@ -54,45 +55,54 @@ see [decisions.md](decisions.md).
 ## What ships, and what doesn't
 
 Only the intents that Button, Input and Dialog actually consume are given semantic
-tokens: **neutral, primary (as `accent`), and danger**. `warning`, `success`, `info`
-and `auxiliary` are transcribed as primitives but have **no semantic token** — they
-gain one the moment a component needs them. The reasoning is in
-[decisions.md](decisions.md): a token is permanent public debt, and the best defence
-against unused tokens is not to create them.
+tokens: **neutral, primary (as `accent`), danger**, and — since Dialog — a single
+`warning` foreground. `success`, `info` and `auxiliary` are transcribed as primitives
+but have **no semantic token** — they gain one the moment a component needs them. The
+reasoning is in [decisions.md](decisions.md): a token is permanent public debt, and the
+best defence against unused tokens is not to create them.
+
+`content-warning` is worth noting as the rule working rather than bending. The `warning`
+ramp sat primitives-only through three components for exactly one reason — nothing
+consumed it. Dialog's Warning variant does, so it gets **one** token: the foreground its
+glyph needs, not the solid/subtle/hover set a "complete" warning intent would imply.
+Evidence buys the token it justifies and no more.
 
 ## Semantic → primitive map (light)
 
-| Token                   | → primitive | Note                                                 |
-| ----------------------- | ----------- | ---------------------------------------------------- |
-| `surface-base`          | neutral-50  | app background                                       |
-| `surface-raised`        | white       | card, default field                                  |
-| `surface-overlay`       | white       | dialog, popover                                      |
-| `surface-sunken`        | neutral-100 | recessed well                                        |
-| `surface-muted`         | neutral-50  | disabled field fill — re-pointed from 200, see below |
-| `surface-hover`         | neutral-100 | ghost/row hover                                      |
-| `surface-active`        | neutral-300 | ghost/row pressed — one step past hover              |
-| `content-primary`       | neutral-700 | body, headings                                       |
-| `content-secondary`     | neutral-600 | remapped from 500 for AA (see a11y)                  |
-| `content-disabled`      | neutral-400 | WCAG-exempt                                          |
-| `content-on-accent`     | neutral-700 | dark label; white fails on the ramp (see a11y)       |
-| `content-accent`        | primary-600 | ghost/link text — brand conflict                     |
-| `content-danger`        | danger-700  | error text — brand conflict                          |
-| `line-subtle`           | neutral-300 | default field border, dividers                       |
-| `line-default`          | neutral-400 | stronger/hover field border                          |
-| `line-disabled`         | neutral-200 |                                                      |
-| `line-focus`            | primary-600 | focus outline colour                                 |
-| `line-danger`           | danger-600  | invalid field border                                 |
-| `accent-solid`          | primary-600 | button primary (600/500/700/300 across states)       |
-| `accent-solid-hover`    | primary-500 | hover lightens (source)                              |
-| `accent-solid-active`   | primary-700 | active darkens (source)                              |
-| `accent-solid-disabled` | primary-300 |                                                      |
-| `danger-solid`          | danger-600  | full states — danger is a Button _tone_              |
-| `danger-solid-hover`    | danger-500  |                                                      |
-| `danger-solid-active`   | danger-700  |                                                      |
-| `danger-solid-disabled` | danger-300  |                                                      |
-| `danger-subtle`         | danger-100  | danger ghost hover wash                              |
-| `danger-subtle-active`  | danger-200  | danger ghost pressed — lifted from 300 (a11y)        |
-| `focus-strong`          | neutral-700 | the focus indicator of record                        |
+| Token                   | → primitive | Note                                                                 |
+| ----------------------- | ----------- | -------------------------------------------------------------------- |
+| `surface-base`          | neutral-50  | app background                                                       |
+| `surface-raised`        | white       | card, default field                                                  |
+| `surface-overlay`       | white       | dialog, popover                                                      |
+| `surface-sunken`        | neutral-100 | recessed well                                                        |
+| `surface-muted`         | neutral-50  | disabled field fill — re-pointed from 200, see below                 |
+| `surface-hover`         | neutral-100 | ghost/row hover                                                      |
+| `surface-active`        | neutral-300 | ghost/row pressed — one step past hover                              |
+| `content-primary`       | neutral-700 | body, headings                                                       |
+| `content-secondary`     | neutral-600 | remapped from 500 for AA (see a11y)                                  |
+| `content-disabled`      | neutral-400 | WCAG-exempt                                                          |
+| `content-on-accent`     | neutral-700 | dark label; white fails on the ramp (see a11y)                       |
+| `content-accent`        | primary-600 | ghost/link text — brand conflict                                     |
+| `content-danger`        | danger-700  | error text — brand conflict                                          |
+| `content-warning`       | warning-600 | Dialog's warning glyph — decorative, see a11y                        |
+| `line-subtle`           | neutral-300 | default field border, dividers                                       |
+| `line-default`          | neutral-400 | stronger/hover field border                                          |
+| `line-disabled`         | neutral-200 |                                                                      |
+| `line-focus`            | primary-600 | focus outline colour                                                 |
+| `line-danger`           | danger-600  | invalid field border                                                 |
+| `line-overlay`          | white       | elevated-surface edge — invisible in light **on purpose**, see below |
+| `scrim`                 | black @ 30% | the modal backdrop; mode-independent                                 |
+| `accent-solid`          | primary-600 | button primary (600/500/700/300 across states)                       |
+| `accent-solid-hover`    | primary-500 | hover lightens (source)                                              |
+| `accent-solid-active`   | primary-700 | active darkens (source)                                              |
+| `accent-solid-disabled` | primary-300 |                                                                      |
+| `danger-solid`          | danger-600  | full states — danger is a Button _tone_                              |
+| `danger-solid-hover`    | danger-500  |                                                                      |
+| `danger-solid-active`   | danger-700  |                                                                      |
+| `danger-solid-disabled` | danger-300  |                                                                      |
+| `danger-subtle`         | danger-100  | danger ghost hover wash                                              |
+| `danger-subtle-active`  | danger-200  | danger ghost pressed — lifted from 300 (a11y)                        |
+| `focus-strong`          | neutral-700 | the focus indicator of record                                        |
 
 There is deliberately **no `accent-subtle`**. It existed on the assumption that the
 accent ghost wash was a brand tint; extracting Button showed it is neutral
@@ -153,10 +163,43 @@ text and borders flip. Highlights:
 | `content-danger`                          | danger-700               | danger-300                                                                 |
 | `danger-subtle`                           | danger-100               | neutral-600 (neutral wash — the ramp has no dark chromatic tint; see a11y) |
 | `focus-strong`                            | neutral-700              | neutral-50 (the indicator inverts with the surface)                        |
+| `line-overlay`                            | white (invisible)        | neutral-500 — the dialog's edge, load-bearing in dark only                 |
 
 Because `@theme` is plain (never `@theme inline`), the utilities keep the `var()`
 indirection, so a mode is a single attribute flip on the root — no component renders
 differently, nothing is rebuilt. A third mode would be one more column of mappings.
+
+### `line-overlay` is white in light on purpose — do not tidy it up
+
+A white border on a white card looks like an oversight in a diff, so it is written down
+here as well as beside the token: **the border exists in both modes and is load-bearing
+in only one.**
+
+In light, Figma draws no stroke on the dialog and none is needed — the scrim behind it
+and `elevation-4` beneath it do the separating. In dark neither works. `surface-base`,
+`surface-raised` and `surface-overlay` all resolve to `#1F1F1F`, because the neutral ramp
+has no step between that and `#4B4B4B` and `#4B4B4B` is too light to seat body text; and
+`elevation-4` over `#1F1F1F` measures **1.045:1**, which is nothing. The border is the
+only thing left.
+
+That also settles _which_ token, which is the part an earlier draft of the obligation got
+wrong by leaving open:
+
+| Candidate      | dark value  | on the page (`#1F1F1F`) |
+| -------------- | ----------- | ----------------------- |
+| `line-subtle`  | neutral-600 | **1.89** ❌             |
+| `line-overlay` | neutral-500 | **5.03** ✅             |
+
+So the obligation was never "carry a border" in the abstract — it decides the token. Both
+numbers are pinned by the contrast contract, with the dark side as a `require`, so
+re-pointing `line-overlay` at a lighter step **fails CI** rather than quietly
+un-discharging the obligation. Proven by provocation: pointing it at neutral-600 reports
+`line-overlay on surface-base [dark]: requires UI (3:1), got 1.89:1`.
+
+The name is deliberate too. `line-overlay` names _what it borders_, so it still reads
+correctly for the next elevated surface (popover, drawer, menu); a name like
+`line-dark-elevation` would have encoded the problem into the token and read wrong the
+moment something else used it.
 
 ## Radius
 

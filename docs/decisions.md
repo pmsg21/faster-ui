@@ -689,6 +689,83 @@ carries. It was taken with the whole suite as evidence: 153 Jest tests, 77 Cypre
 **no new violations** on the newer engine. A newer engine finding nothing is a result worth
 stating, because the alternative outcome would have been findings rather than obstacles.
 
+## The scrim is a real element, because `::backdrop` is younger than `<dialog>`
+
+The obvious way to paint a modal backdrop is `dialog::backdrop { background-color:
+var(--color-scrim) }` — one rule, no extra DOM. It was the plan, and checking it before
+writing any component code is the only reason it is not what shipped.
+
+Two baselines are involved and they are two years apart:
+
+| Feature                                                           | Chrome  | Firefox | Safari   |
+| ----------------------------------------------------------------- | ------- | ------- | -------- |
+| `<dialog>` + `showModal()`                                        | 37      | **98**  | **15.4** |
+| `::backdrop` inherits from its originating element (tree-abiding) | **122** | 120     | **17.4** |
+
+Before it became tree-abiding, `::backdrop` inherited from **nothing**. Custom properties
+are inherited properties, so a `--color-scrim` declared on `:root` is simply not visible
+there — `var(--color-scrim)` is invalid at computed-value time, and `background-color`
+falls back to its initial value, `transparent`.
+
+That is the part worth keeping: **the failure is not a wrong colour, it is no scrim at
+all**, on browsers that otherwise support `showModal()` perfectly. A modal whose backdrop
+silently vanishes on Safari 16 is a functional defect, and it would have been invisible in
+every gate we run, all of which use a current Chrome. The plan for this component said the
+degradation would be "graceful". It would not have been.
+
+So the `<dialog>` is a transparent, full-viewport shell and the **scrim is a real element
+inside it**. The only `::backdrop` rule left is `background-color: transparent`, a literal
+that involves no custom property and is therefore safe on every engine that has `<dialog>`
+at all. The scrim's baseline collapses onto the dialog's own.
+
+Three things fall out that are better than the original plan rather than merely equivalent:
+
+- **Backdrop dismissal stops being a hit-test.** The documented trick for `::backdrop` —
+  which is not an event target — is to compare a click's coordinates against the dialog's
+  bounding rect. With a real scrim the check is `event.target === scrim`, which is not an
+  approximation of anything.
+- **The scrim is measurable by the ordinary instrument.** `getComputedStyle` on a
+  pseudo-element is exactly the tool that already lied to us about `::placeholder` (see
+  [CLAUDE.md](../CLAUDE.md) known-gaps). A real element has no such caveat, so this
+  component does not add a second entry to that list.
+- **Centring becomes ours and therefore testable**, rather than the UA's `margin: auto` on
+  a max-width box we would then be fighting.
+
+The cost is one extra DOM node and taking over viewport sizing. Worth it.
+
+Method note, because the conclusion is only as good as how it was reached: the current
+engine was probed first (it resolves the property correctly and paints `#B3B3B3`), which
+proves nothing about the baseline — so the version matrix above was looked up rather than
+inferred from a passing check. **A feature working in the browser in front of you is the
+weakest possible evidence about the browsers you support.**
+
+## A translucent token must be visible to the guard without being measurable by it
+
+Adding `--color-scrim` surfaced a hole in the contrast contract, and the two halves of the
+fix pull in opposite directions.
+
+`parseTheme` resolved only `^#[0-9a-fA-F]{6}$`. A token carrying alpha returned `null`,
+was dropped from the parsed theme, never appeared in `colorTokens`, and so could not be
+reported by `findUnaccountedTokens`. **A colour token invisible to the guard whose entire
+purpose is that a gap cannot hide** — the same shape as every other entry in this file: a
+check that is green because it never reached its subject.
+
+Widening the parser to accept `#rrggbbaa` fixes visibility and immediately creates a worse
+problem. `relativeLuminance` reads the first six digits, so a translucent token in a
+`PAIRS` entry would measure as though it were opaque and produce a confident, plausible,
+**wrong** ratio. WCAG contrast is defined between opaque colours; a translucent one has no
+ratio until it is composited over something.
+
+So the two capabilities are separated by construction rather than by memory:
+`HEX_COLOR` accepts eight digits so the completeness guard can _see_ such a token, and
+`findAlphaTokensInPairs` fails the build if one ever reaches a pair. `scrim` sits in
+`IGNORED` with its reason, and the reason is now enforced rather than trusted — the same
+move `SHARED_VALUE` made when "these two tokens have the same value" turned out to be a
+claim a comment could not keep honest.
+
+The general form: **a wrong number that passes is worse than a missing one**, because
+nothing ever asks about it again.
+
 ## Contrast is a contract, not a document
 
 The accessibility decisions (which brand conflicts are accepted, which failures are

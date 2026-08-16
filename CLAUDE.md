@@ -340,10 +340,28 @@ These are accessibility decisions the contrast contract records but a _token_ ca
 enforce — they land when the component is built. Full detail in
 [docs/accessibility.md](docs/accessibility.md).
 
-- **Dark-mode elevation is a border, not a shadow.** In dark, `surface-base/raised/
-overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is imperceptible
-  (`elevation-4` ≈ 1.05:1). **Dialog/popover must carry a visible border in dark** —
-  nothing else separates an elevated surface from the page.
+- **Dark-mode elevation is a border, not a shadow** — _discharged by `Dialog`_, and the
+  original wording was a level too abstract. In dark, `surface-base/raised/overlay` all
+  resolve to `#1F1F1F` and `elevation-4` over it measures **1.045:1** (recomputed, not
+  inherited), so nothing but a border separates an elevated surface from the page. What the
+  entry did not say is **which** border, and that turns out to be the whole decision:
+
+  | Candidate for the dialog edge | dark value  | on `#1F1F1F` |
+  | ----------------------------- | ----------- | ------------ |
+  | `line-subtle`                 | neutral-600 | **1.89** ❌  |
+  | `line-overlay` (added)        | neutral-500 | **5.03** ✅  |
+
+  Because this border _is_ the boundary, SC 1.4.11 applies and 1.89 fails outright. A new
+  semantic token carries it: `line-overlay`, white in light (invisible on the white card,
+  exactly as Figma draws, so light mode gains no divergence) and neutral-500 in dark. It is
+  paired in the contrast contract with **`require` in dark** — the one border in the system
+  that may not rest on an exemption — so re-pointing it fails CI instead of quietly
+  un-discharging the obligation. Proven by provocation: it reports
+  `line-overlay on surface-base [dark]: requires UI (3:1), got 1.89:1`.
+
+  Same correction `line-danger` got during `Input`, in the same shape: **an obligation
+  stated one level too abstract sends the next session looking for the wrong thing.**
+
 - **Focus-ring visibility (Input)** — _discharged by `Input`._ The brand cyan ring is below
   SC 1.4.11 on white (≤2.12:1). A focused field carries **both**: `line-focus` (cyan) on the
   inner border, which is what the design draws, and `focus-strong` (neutral, 2px at 2px

@@ -116,6 +116,8 @@ in dark the brand hues sit on dark surfaces, where they have contrast to spare.
 | line-focus        | surface-raised       | 2.12 ⚠️  | 8.76 ✅  |
 | focus-strong      | surface-base         | 15.79 ✅ | 15.79 ✅ |
 | focus-strong      | surface-raised       | 16.48 ✅ | 15.79 ✅ |
+| line-overlay      | surface-base         | 1.04 ⚠️  | 5.03 ✅  |
+| content-warning   | surface-overlay      | 1.87 ⚠️  | 8.82 ✅  |
 
 Disabled text (`content-disabled`) is WCAG-exempt and not tabled.
 
@@ -150,15 +152,48 @@ reading as a deeper recess (ΔE 31.9 from hover). The press inverts direction be
 modes; that is the shallow dark end of the neutral ramp again, the same limitation that
 makes elevation a border below — not a stylistic preference.
 
-**Dark elevation is a border, not a shadow.** The neutral ramp is shallow at the dark
-end (nothing between `#1F1F1F` and `#4B4B4B`, which is too light to seat body text), so
-`surface-base`, `surface-raised` and `surface-overlay` all resolve to `#1F1F1F`. The
-elevation shadows are black at 6–12% alpha, and **over `#1F1F1F` that is imperceptible —
-`elevation-4` measures ~1.05:1 against the surface.** So a dark-mode Dialog does not
-separate from the page behind it by tint or shadow; **it must carry a visible border.**
-That makes the border load-bearing in dark rather than decorative — an explicit
-obligation on Dialog/popover, recorded in [CLAUDE.md](../CLAUDE.md) so the component
-session sees it first.
+**Dark elevation is a border, not a shadow — _discharged by `Dialog`_, and it decides a
+token rather than a principle.** The neutral ramp is shallow at the dark end (nothing
+between `#1F1F1F` and `#4B4B4B`, which is too light to seat body text), so `surface-base`,
+`surface-raised` and `surface-overlay` all resolve to `#1F1F1F`. The elevation shadows are
+black at 6–12% alpha, and **over `#1F1F1F` that is imperceptible — `elevation-4` measures
+1.045:1 against the surface** (recomputed, not inherited). So a dark-mode Dialog does not
+separate from the page behind it by tint or shadow; the border is the only thing left, and
+it is load-bearing rather than decorative.
+
+The part the obligation did not say, and should have: **which border.** Measured from the
+shipped tokens, the obvious candidate does not work.
+
+| Candidate for the dialog edge | dark value  | on the page (`#1F1F1F`) |
+| ----------------------------- | ----------- | ----------------------- |
+| `line-subtle`                 | neutral-600 | **1.89** ❌             |
+| `line-overlay` (new)          | neutral-500 | **5.03** ✅             |
+
+Because this border _is_ the boundary, SC 1.4.11 applies to it and 1.89 fails outright.
+So a new semantic token carries it — `line-overlay`, white in light (invisible on the
+white card, exactly as Figma draws, so the light mode gains no divergence) and neutral-500
+in dark. It is paired in the contract with **`require` in dark**, which is the point:
+this is the one border in the system that may not rest on an exemption, and re-pointing it
+fails CI rather than silently un-discharging the obligation. Proven by provocation.
+
+This is the same correction `line-danger` got during `Input`, in the same shape: an
+obligation stated one level too abstract sends the next session looking for the wrong
+thing. "Carry a visible border" is advice; "`line-subtle` measures 1.89 and cannot carry
+it" is the finding.
+
+**The warning glyph is accepted below the non-text bar, because it is decorative.**
+Dialog's Warning variant draws a `warning-600` icon, which measures **1.87** on the dialog
+surface — and no step of the ramp clears 3:1 (`warning-700` reaches only 2.12), so this is
+a palette limit rather than a mapping mistake, exactly like cyan. It is accepted rather
+than fixed because SC 1.4.11 governs graphics **required to understand the content**, and
+this one is not: the body text explains the warning, the destructive action names it, and
+`role="alertdialog"` announces it.
+
+That reasoning depends entirely on the glyph being `aria-hidden` — expose it to assistive
+technology and it stops being decorative, at which point the criterion applies and the
+exemption evaporates. So the `aria-hidden` is **asserted in `Dialog.test.tsx`**, not left
+as an implementation detail. An exemption whose premise is untested is just a number
+somebody wrote down.
 
 ## Verified by hand, because no gate can
 
