@@ -299,11 +299,12 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   rather than the pseudo-element's cascade, so the painted placeholder cannot be read from a
   component test. The emitted rule is correct and was checked by hand in the compiled CSS.
   Visual regression is what closes this properly.
-- **Storybook and the gates run different axe engines.** `@storybook/addon-a11y` resolves
-  `axe-core@4.13.0`; `jest-axe` and Cypress both use the pinned `4.9.1`. The axe
-  _configuration_ is shared through `a11y.config.ts`, but the engine is not, so a Cypress
-  proof does not strictly transfer to the panel. Aligning them via a pnpm override is the
-  obvious fix and has not been taken yet.
+- **One axe engine, held there by a `pnpm.overrides` entry.** `jest-axe`, `cypress-axe` and
+  `@storybook/addon-a11y` all resolve `axe-core@4.13.0`. They did not: the addon declares
+  its own `^4.2.0` and had drifted a minor ahead of the gates, so the panel a reviewer reads
+  and the check that blocks a merge were different engines. **Bumping `@storybook/addon-a11y`
+  will not re-split them, but removing the override would** — and nothing fails loudly if it
+  does, which is the shape worth remembering.
 - **The completeness guard covers colour only.** `parseTheme` filters on
   `--color-*`, so `--radius-*`, `--text-*` and `--shadow-*` are invisible to it: a
   radius or type token can be added with no decision recorded and nothing goes red.

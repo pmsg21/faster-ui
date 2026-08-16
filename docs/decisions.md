@@ -27,10 +27,18 @@ is the rate, not any single instance.
 Each would have "worked" under npm's flat hoisting and surfaced later — for a
 library, in a consumer's install, where the cost is someone else's broken build.
 `axe-core` is the sharpest of the three: it did not fail loudly, it failed as a
-gate that stopped checking. Note also the version pins that follow from this:
-`axe-core` matches what `jest-axe` resolves and `@storybook/test` matches what
-`addon-interactions` resolves, so each pair shares one instance rather than
-installing two that disagree.
+gate that stopped checking.
+
+Note also the version pins that follow from this. The earlier wording here said `axe-core`
+"matches what `jest-axe` resolves … so **both test runners** measure with the same engine."
+That was true of Jest and Cypress and **never true of Storybook**, whose a11y addon declares
+its own `^4.2.0` and resolved a different minor entirely. The sentence described a guarantee
+narrower than it claimed, which is the failure mode this whole document keeps recording.
+
+What is guaranteed now is stated as a mechanism rather than a coincidence of resolution: a
+`pnpm.overrides` entry pins **`axe-core` to one version for every consumer** — `jest-axe`,
+`cypress-axe` and `@storybook/addon-a11y` alike. `@storybook/test` still matches what
+`addon-interactions` resolves, which is a separate pair and unaffected.
 
 ## Distribution: a stylesheet import, because the package has no runtime
 
@@ -629,18 +637,35 @@ The remedy was not to disable the rule, which would have made two silences inste
 See [patterns.md](patterns.md) on the three kinds of axe configuration and why an
 inapplicable rule and an accepted exemption must not be written the same way.
 
-### The two runners do not share an axe engine
+### The runners were on two axe engines, and now they are pinned to one
 
-While auditing the above: `@storybook/addon-a11y` declares `axe-core@^4.2.0` and resolves
-**4.13.0**, while `jest-axe` pins **4.9.1** and Cypress injects
-`node_modules/axe-core/axe.min.js` — the same 4.9.1. So the panel a maintainer reads and the
-gate that blocks a merge are running different engines, and rule sets change between minor
-versions.
+While auditing the above: `@storybook/addon-a11y` declared `axe-core@^4.2.0` and resolved
+**4.13.0**, while `jest-axe` pinned **4.9.1** and Cypress injected
+`node_modules/axe-core/axe.min.js` — the same 4.9.1. The panel a maintainer reads and the
+gate that blocks a merge were running different engines, and rule sets change between minors.
 
-Recorded rather than fixed, because the _configuration_ is now shared through one file and
-that was the larger risk. But it bounds what a Cypress proof can claim about the panel, and
-it narrows the existing claim in this document that "both test runners measure with the same
-engine" — true of Jest and Cypress, never true of Storybook.
+That splits every accessibility claim in the project in two: what CI verifies, and what a
+reviewer sees. The two can disagree, and the disagreement surfaces exactly where it does most
+damage — someone opening Storybook and finding something CI called clean. It is the same
+shape as the entry above it: **two verifications that look like one.**
+
+Fixed rather than recorded, because it is a `pnpm.overrides` entry and not a redesign:
+
+```json
+"pnpm": { "overrides": { "axe-core": "4.13.0" } }
+```
+
+All three consumers now resolve 4.13.0, verified down to the version string inside the
+`axe.min.js` that Cypress actually injects — the file, not the manifest, because the manifest
+is what was lying in the first place.
+
+The direction was deliberate: **move Jest and Cypress up rather than hold Storybook back.**
+The newer engine checks more, and pinning to the older one would have traded a real
+verification for a quieter one. `jest-axe@9.0.0` pins `axe-core` at exactly `4.9.1` in its own
+dependencies, so the override forces it past its declared pin — worth naming as the risk this
+carries. It was taken with the whole suite as evidence: 153 Jest tests, 77 Cypress tests, and
+**no new violations** on the newer engine. A newer engine finding nothing is a result worth
+stating, because the alternative outcome would have been findings rather than obstacles.
 
 ## Contrast is a contract, not a document
 

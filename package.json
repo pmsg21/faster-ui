@@ -49,6 +49,9 @@
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "pnpm": {
+    "overrides": {
+      "axe-core": "4.13.0"
+    },
     "onlyBuiltDependencies": [
       "cypress",
       "@swc/core",
@@ -101,7 +104,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
-    "axe-core": "4.9.1",
+    "axe-core": "4.13.0",
     "cypress": "^13.17.0",
     "cypress-axe": "^1.6.0",
     "cypress-real-events": "1.15.0",
