@@ -73,28 +73,46 @@ explicitly even though every browser already gives form controls border-box.
 
 Measured, not assumed:
 
-| Entry                    | Brotli  |
-| ------------------------ | ------- |
-| Full library (ESM)       | 9.41 kB |
-| `import { Button }` only | 9.27 kB |
-| Stylesheet               | 4.92 kB |
+| Entry                        | Brotli   |
+| ---------------------------- | -------- |
+| Full library (ESM)           | 10.49 kB |
+| `import { Button }` only     | 9.59 kB  |
+| `import { IconButton }` only | 9.65 kB  |
+| `import { Input }` only      | 9.99 kB  |
+| Stylesheet                   | 5.41 kB  |
 
 Two things fall out of that, and both are worth saying plainly rather than presenting
-9.41 kB as a win.
+10.49 kB as a win.
 
-**Tree-shaking works, and it barely matters.** Dropping `IconButton` saves 140 bytes,
-because `IconButton` composes `Button` and shares its `cva` matrix — the thing that makes
-the two components consistent is also the thing that makes them inseparable. That is what
-composition costs, and it is the right trade at this size; a second, independent style
-map would shave bytes by reintroducing the drift the composition exists to prevent. The
-`import: "{ Button }"` entry stays in the budget so the number is watched as more
-components land — the day it diverges sharply from the full bundle, something has stopped
-being shared.
+**Tree-shaking works — but it did not, and the budget is what caught it.** An earlier
+version of this section claimed tree-shaking worked on the evidence that "dropping
+`IconButton` saves 140 bytes." That number was real and the conclusion drawn from it was
+wrong. When `Input` landed, the `import { Button }` entry jumped from 9.27 kB to 10.30 kB
+and blew its budget — almost exactly the amount `Input` had added to the _full_ bundle.
+Probing each export in turn showed every single-component import sitting within 200 bytes
+of the whole library: **nothing was being dropped, and the 140 bytes had been noise.**
+
+The cause is a call expression at module scope. `export const Button = forwardRef(…)` is a
+function call, and a bundler cannot prove a call is side-effect-free, so it is retained —
+and retaining it retains everything it references, which is the entire component and its
+`cva` matrix. `sideEffects` in `package.json` does not help, because that governs whole
+_modules_ and the published bundle is one flat file. Annotating each component
+`/* @__PURE__ */ forwardRef(…)` gives the bundler the permission it cannot infer, and the
+numbers above are the result: a consumer importing one component now pays for one
+component.
+
+Worth keeping for its shape rather than its bytes. This is the "green gate that never ran
+its subject" failure one more time, in its most deceptive form yet — the gate _did_ run,
+it reported a real measurement, and the measurement was of nothing. A 140-byte delta looks
+like a small saving; it was actually the absence of any saving at all. **A number being
+real does not make the inference from it real**, and the only reason it surfaced is that
+the budget was written as a hard threshold rather than a tracked figure.
 
 **Almost all of it is one dependency.** `tailwind-merge` is ~14.6 kB brotli on its own
-(unminified); `clsx` is 0.2 kB and `cva` 0.9 kB. Our two components are a rounding error
-on top of it. So the honest framing is that this package's floor is the cost of
-`cn()`, not the cost of the components.
+(unminified); `clsx` is 0.2 kB and `cva` 0.9 kB. Our three components are a rounding error
+on top of it — which is also why the shaking defect above hid for so long: when the floor
+is ~9.4 kB, a component failing to drop moves the total by a few percent. So the honest
+framing is that this package's floor is the cost of `cn()`, not the cost of the components.
 
 We keep it, because what it buys is a stated rule rather than a convenience: **a
 consumer's `className` wins.** Without conflict-aware merging, `<Button
@@ -109,7 +127,7 @@ at thirty components it is negligible; at three it is the whole bundle.
 
 ## Design tokens: `@theme`, not `@theme inline`
 
-Tokens are defined in Tailwind v4's `@theme` block in `src/styles/index.css`.
+Tokens are defined in Tailwind v4's `@theme` block in `src/styles/tokens.css`.
 `@theme inline` bakes each token's value directly into the generated utility at
 build time, which freezes it: a utility such as `bg-surface-base` would keep its
 light-mode value even after `[data-theme='dark']` is applied. Plain `@theme`

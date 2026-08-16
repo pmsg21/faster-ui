@@ -124,6 +124,13 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - `cva` for variants; `cn()` / `twMerge` for class composition, so a consumer's
   `className` wins. `forwardRef` on anything rendering a DOM element. Props named
   for intent (`variant="danger"`), never appearance (`variant="red"`).
+- **Every component is `export const X = /* @__PURE__ */ forwardRef(…)`.** Without the
+  annotation the component does not tree-shake — a call expression at module scope cannot
+  be proven side-effect-free, so importing _any_ component drags in _all_ of them. This
+  was measured, not theorised: before the fix a single-component import cost within 200
+  bytes of the entire library. `sideEffects` in `package.json` does not cover it, because
+  that governs whole modules and the published bundle is one flat file. See
+  [docs/decisions.md](docs/decisions.md).
 - **Identifiers say what the value is _for_.** No single letters, no abbreviations
   that need the surrounding line to decode — `registerNumber`, not `n`;
   `foregroundLuminance`, not `fl`. This applies to props, locals, callback
@@ -228,12 +235,23 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   [docs/decisions.md](docs/decisions.md)). Seven design-fidelity divergences recorded.
   Two defects that every gate passed were found by hand-testing — the missing `Fillet`
   capability and an inherited-but-wrong `outline` interaction model.
-- **Next — `Input`, then `Dialog`.** `Input`'s Figma page is seven component sets and
-  237 components; only `Size` survives as a prop, because `State`, `Typing`,
-  `Text Entered` and `State 2` are all runtime. The `Number` stepper and the filled
-  prefix/suffix **addon segments** are extracted and specified but deliberately not
-  shipped — recorded in [docs/decisions.md](docs/decisions.md) so the omission reads as
-  a decision, not a gap.
+- **Done — `Input`.** Seven Figma component sets and 237 components reduced to **one**
+  public axis (`size`): `State`, `Typing`, `Text Entered` and `State 2` are all runtime.
+  `label` is required so a nameless field cannot compile; `disabled` uses the **native**
+  attribute, deliberately unlike `Button`, because under `aria-disabled` the value still
+  submits. The clear control is the library's only nested interactive control. The `Number`
+  stepper and the filled prefix/suffix **addon segments** are extracted and specified but
+  deliberately not shipped — recorded in [docs/decisions.md](docs/decisions.md) so the
+  omission reads as a decision, not a gap. Three new fidelity rows (8–10), taking the
+  register to ten.
+- **Tree-shaking was broken and is now fixed.** Every component is annotated
+  `/* @__PURE__ */ forwardRef(…)`. Without it a call expression at module scope cannot be
+  proven side-effect-free, so **every** component was retained in **every** import — a
+  single-component import cost within 200 bytes of the whole library. Caught by the
+  `size-limit` budget when `Input` landed, not by review. Any new component must carry the
+  annotation or it silently reintroduces the defect.
+- **Next — `Dialog`.** Its obligation is already recorded below: in dark mode elevation is
+  a border, not a shadow.
 
 ## Known gaps / state to remember
 
@@ -261,6 +279,14 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   engine. Safari and Firefox user-agent sheets differ on form-control margins, so
   the claim is narrower than "verified in browsers". `box-border` is set explicitly
   by the component for the same reason; the rest is still borrowed from the UA sheet.
+- **The painted placeholder colour is not verified end to end.** Every other token claim is
+  proven from a real painted pixel in Cypress; this one is proven in two weaker halves —
+  the control carries `placeholder:text-content-secondary`, and `--color-content-secondary`
+  resolves to `#4b4b4b`. The reason is the instrument, not the component: Chrome's
+  `getComputedStyle(element, '::placeholder')` returns the **originating element's** colour
+  rather than the pseudo-element's cascade, so the painted placeholder cannot be read from a
+  component test. The emitted rule is correct and was checked by hand in the compiled CSS.
+  Visual regression is what closes this properly.
 - **The completeness guard covers colour only.** `parseTheme` filters on
   `--color-*`, so `--radius-*`, `--text-*` and `--shadow-*` are invisible to it: a
   radius or type token can be added with no decision recorded and nothing goes red.
