@@ -10,6 +10,8 @@ and the WCAG criterion each one turns on. It
 is the single record; [accessibility.md](accessibility.md), [tokens.md](tokens.md) and
 [decisions.md](decisions.md) link here rather than repeating it.
 
+Ten across **four** components: `Dialog` added none.
+
 **The short version:** we matched the design, measured it, found the places where it
 fails WCAG, and fixed those in the semantic token layer — never by editing a primitive.
 Every Figma value is still present and still traceable; what changed is which token sits
@@ -65,11 +67,12 @@ different claims.
 
 ### By component
 
-| Component    | Introduces | Extends      | Total in play |
-| ------------ | ---------- | ------------ | ------------- |
-| `Button`     | 1–7        | —            | 7             |
-| `IconButton` | —          | 1, 3, 7      | 0 new         |
-| `Input`      | 8, 9, 10   | **3**, **7** | 3 new         |
+| Component    | Introduces | Extends           | Total in play |
+| ------------ | ---------- | ----------------- | ------------- |
+| `Button`     | 1–7        | —                 | 7             |
+| `IconButton` | —          | 1, 3, 7           | 0 new         |
+| `Input`      | 8, 9, 10   | **3**, **7**      | 3 new         |
+| `Dialog`     | —          | 1, 3, 4, **6**, 7 | 0 new         |
 
 `IconButton` introduced nothing: implementing a capability the design documents (the round /
 square `Fillet`) is fidelity, not divergence. `Input` extends two of Button's rows rather
@@ -78,10 +81,39 @@ keeping cyan off the placeholder and value is row 3 — and its affix colour reu
 `content-secondary` remap already recorded in [accessibility.md](accessibility.md), so it
 adds no row at all.
 
-The trend is the point: **seven, then zero, then three.** The large decisions were made in
-the first component and later ones inherit rather than reopen them. A flat total of ten does
-not show that; the per-component split does. If `Dialog` contributes one or two, the shape of
-that sequence is itself the argument that the approach stayed proportionate.
+The trend is the point: **seven, then zero, then three, then zero.** The large decisions
+were made in the first component and later ones inherit rather than reopen them. A flat
+total of ten does not show that; the per-component split does.
+
+`Dialog` extends five rows and introduces none. Row 6 is the one worth naming, because it
+is the same _decision_ wearing different clothes for a third time: a Figma frame reports
+the size of the artwork, not a specification of how large the thing you press should be.
+It was the link button's 22px height, then Input's 12px clear glyph, now the dialog's 14px
+close glyph — each floored to a 24×24 target while the drawn artwork is untouched.
+
+### Four Dialog differences that are deliberately not rows
+
+Each of these looks like a divergence and is not, and saying why is the only thing that
+keeps the count meaningful — a register inflated by non-decisions measures nothing.
+
+- **The dark-mode border.** Figma has no dark mode, so there is nothing to diverge from.
+  It discharges an obligation the token layer raised rather than departing from a drawing.
+- **A `max-height` instead of the drawn fixed 400px.** The Scrollable page's own prose is
+  conditional — 若对话框内容溢出, "**if** the dialog content overflows" — so a dialog that
+  hugs short content and scrolls long content _is_ the specification. The fixed frame is a
+  canvas artefact.
+- **The divider at `line-subtle`** where the file draws `neutral-200`. A shared-token
+  decision ([tokens.md](tokens.md)), not a design one: nothing turns on it, and one ramp
+  step darker is strictly more visible. Same class as Input's disabled text.
+- **The close glyph at `content-secondary`** where the file draws `neutral-500`. This
+  reuses the 500 → 600 AA remap already recorded in
+  [accessibility.md](accessibility.md), exactly as Input's affix did — and that added no
+  row either.
+
+The warning glyph is a fifth near-miss of a different kind. It measures 1.87 on the dialog
+surface, which is a real accepted **exemption** — but nothing diverges, because the design
+draws `warning-600` and we ship `warning-600`. An exemption and a divergence are different
+claims, and only one of them belongs in this register.
 
 ## Why each one
 
@@ -163,8 +195,9 @@ covering the legitimate case of a field whose purpose is obvious from context �
 
 ## On the count
 
-Ten decisions across three components, introduced seven / zero / three. Each is measured,
-each turns on a specific criterion, and each was the smallest change that clears it.
+Ten decisions across four components, introduced seven / zero / three / zero. Each is
+measured, each turns on a specific criterion, and each was the smallest change that clears
+it.
 
 The number to watch is not the total but the rate, and the rate is falling — which is what a
 proportionate approach looks like. Thirty rows would be a different thing entirely: at that

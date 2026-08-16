@@ -52,9 +52,38 @@ be careful about. On shape one, mis-transcribing a cell ships a wrong colour. On
 two, the equivalent mistake ships a control that a screen reader cannot describe — and no
 amount of matrix-checking would have caught it.
 
-`Dialog` is the third and looks like shape two again: focus trapping, restoration,
-`aria-modal`, escape handling and scroll locking are all behaviour, and its visual
-specification is close to one surface with one border.
+**Shape three: the specification is mostly the platform's.** `Dialog` — and the
+prediction this paragraph used to make was wrong, which is why it is worth correcting
+rather than quietly rewriting. It said Dialog "looks like shape two again: focus
+trapping, restoration, `aria-modal`, escape handling and scroll locking are all
+behaviour."
+
+Every item on that list is real, and we wrote almost none of it. `showModal()` supplies
+the focus trap, the focus restoration, Escape, the top layer and background inertness;
+`aria-modal` turned out to be something you should _not_ write, because the browser
+conveys modality natively and asserting it by hand is how the two get to disagree. What
+we actually wrote was the initial-focus resolver, the scroll lock and the dismissal
+rules — perhaps a fifth of what shape two would have implied.
+
+So the hard part is not writing behaviour. It is **choosing the substrate, and then
+proving the substrate is really doing it.** That inverts where the risk lives:
+
+| Shape                                | Where the work is                              | What a mistake ships                                   |
+| ------------------------------------ | ---------------------------------------------- | ------------------------------------------------------ |
+| One — class matrix (`Button`)        | transcribing cells                             | a wrong colour                                         |
+| Two — behaviour (`Input`)            | wiring, focus, derived state                   | a control a screen reader cannot describe              |
+| Three — platform contract (`Dialog`) | choosing what _not_ to write, and verifying it | a component that looks correct and is not modal at all |
+
+The third failure is the dangerous one, because nothing in the code looks wrong. A
+`<dialog open>` renders identically to a `showModal()`'d one; it simply is not modal.
+That is why this shape needs a harness that can tell the difference — see
+[A measurement harness needs its own sanity check](#a-measurement-harness-needs-its-own-sanity-check),
+which Dialog extended twice in one session.
+
+The tell for shape three is a component whose accessibility requirements read like a
+list of things browsers already do. When that happens, the question is not "how do I
+implement these?" but "which of these does the platform give me, and how would I know if
+it stopped?"
 
 ## How many variant axes: as many as the source has, and no more
 
@@ -266,6 +295,28 @@ stylesheet — a serious defect, nearly reported as one. Reading in a separate c
 the re-map working. The custom property had already flipped while the resolved
 `background-color` had not, and that split is the diagnostic: when a token changes but
 the property using it does not, suspect the read before the CSS.
+
+**When the subject can be stubbed, the harness must assert it is not.** jsdom has no
+`<dialog>` modal behaviour, so `jest.setup.ts` shims `showModal`. In Jest, then, a modal
+dialog and a plain `<dialog open>` are indistinguishable — and if that shim ever reached
+the browser suite, every modality assertion would keep passing while proving nothing.
+So `Dialog.cy.tsx` opens by asserting `HTMLDialogElement.prototype.showModal` is native,
+and separately that the element matches `:modal`, which only a `showModal()`'d dialog
+does.
+
+**Provoking it paid for itself immediately, and not in the way intended.** Installing the
+shim in the browser environment turned the sanity check red as designed — but **17 of the
+27 specs still passed**, and one of them was an inertness test. It asserted that a point
+over a background button hit the scrim instead, which is equally true of a non-modal
+dialog whose scrim covers the page: it was measuring z-order and reporting inertness.
+Rewritten to ask the background element to take focus — something covering cannot fake,
+because only a genuinely inert document refuses it — the spec fails against the shim as
+it should.
+
+The general form is sharper than "prove the gate fails". **Provoke the gate, then read
+which _other_ tests survived the provocation.** Every one that stayed green under a
+deliberately broken subject is a test that was not measuring that subject, and you will
+not find those any other way.
 
 ### Real keyboard needs real events
 

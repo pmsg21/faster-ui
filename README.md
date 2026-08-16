@@ -4,8 +4,9 @@ A small, production-ready design system: `Button`, `Input`, `Dialog`.
 
 React · TypeScript · Tailwind CSS v4 · Storybook · Jest · Cypress · GitHub Actions
 
-> **Status:** the token layer, `Button`, `IconButton` and `Input` ship in **0.2.0**.
-> `Dialog` is next.
+> **Status:** the token layer, `Button`, `IconButton` and `Input` ship in **0.2.0**, the
+> currently published version. `Dialog` is complete on `main` and ships in the next
+> release, which completes the brief.
 
 **Live Storybook:** https://pmsg21.github.io/faster-ui/ · **npm:** [`@pmsg21/faster-ui`](https://www.npmjs.com/package/@pmsg21/faster-ui)
 
@@ -22,7 +23,14 @@ measures **1.64:1**, and darkening only the placeholder would have made it ident
 the value and erased the difference between an empty field and a filled one — so both
 move one step and the design's _relationship_ survives.
 
-Those are two of **ten** differences across the three shipped components, each measured
+`Dialog` has a third version of it that is invisible until you switch themes: in dark mode
+`surface-base`, `surface-raised` and `surface-overlay` all resolve to the same `#1F1F1F`,
+and the elevation shadow over that measures **1.045:1** — nothing at all. So the dialog's
+**border is load-bearing rather than decorative in dark**, and the obvious token for it
+(`line-subtle`, 1.89:1) is not good enough; it uses a neutral that measures 5.03:1. The
+contrast contract enforces that as a requirement, not a preference.
+
+Those are two of **ten** differences across the four shipped components, each measured
 against a specific WCAG criterion: eight are changes to something the file draws, and two
 are **additions** where it draws nothing at all — a focus state, and a visible label.
 Fixes land either in the semantic token layer or in the component; **no primitive is ever
@@ -86,15 +94,19 @@ any project, on any version, or none.
 ```js
 import '@pmsg21/faster-ui/styles.css';
 
-import { Button, IconButton, Input } from '@pmsg21/faster-ui';
+import { Button, Dialog, IconButton, Input } from '@pmsg21/faster-ui';
 ```
 
-`0.2.0` exports exactly those three components and their prop types — nothing else. The
-public surface is pinned by a test, so neither an accidental export nor an accidental
-omission can merge quietly.
+The published `0.2.0` exports `Button`, `IconButton` and `Input`; `Dialog` joins them in
+the next release. The public surface is pinned by a test in both runners, so neither an
+accidental export nor an accidental omission can merge quietly.
+
+`Dialog` is built on the native `<dialog>` element, which sets a browser floor for that
+component only: **Safari 15.4 and Firefox 98**, both March 2022. Everything else in the
+package is plain CSS and has no such floor.
 
 The stylesheet carries the design tokens and the component classes. It deliberately
-carries **no CSS reset**: installing three components should not restyle your
+carries **no CSS reset**: installing four components should not restyle your
 headings, lists and forms.
 
 Dark mode is one attribute on the root element — no provider, no re-render:

@@ -124,13 +124,20 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - `cva` for variants; `cn()` / `twMerge` for class composition, so a consumer's
   `className` wins. `forwardRef` on anything rendering a DOM element. Props named
   for intent (`variant="danger"`), never appearance (`variant="red"`).
-- **Every component is `export const X = /* @__PURE__ */ forwardRef(…)`.** Without the
-  annotation the component does not tree-shake — a call expression at module scope cannot
-  be proven side-effect-free, so importing _any_ component drags in _all_ of them. This
-  was measured, not theorised: before the fix a single-component import cost within 200
-  bytes of the entire library. `sideEffects` in `package.json` does not cover it, because
-  that governs whole modules and the published bundle is one flat file. See
+- **No unannotated call expression at module scope.** Every component is
+  `export const X = /* @__PURE__ */ forwardRef(…)` — and so is **every `cva(…)`**, for
+  exactly the same reason: a bundler cannot prove a call is side-effect-free, so it keeps
+  the binding and everything it references. `sideEffects` in `package.json` does not cover
+  it, because that governs whole modules and the published bundle is one flat file.
+
+  This bullet used to name only `forwardRef`, and that was too narrow — `buttonVariants`
+  and `inputVariants` had been leaking since they shipped. Measured when `Dialog` landed:
+  a `{ Button }`-only import grew **440 bytes** the moment Dialog joined the barrel,
+  despite Dialog importing nothing from it; annotating the `cva` calls took Button-only to
+  **9.49 kB**, below its own long-standing baseline. Watch for the quieter form too —
+  `[ … ].join(',')` is a call, and cost 100 bytes of retained module. See
   [docs/decisions.md](docs/decisions.md).
+
 - **Identifiers say what the value is _for_.** No single letters, no abbreviations
   that need the surrounding line to decode — `registerNumber`, not `n`;
   `foregroundLuminance`, not `fl`. This applies to props, locals, callback
@@ -269,14 +276,24 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   deliberately not shipped — recorded in [docs/decisions.md](docs/decisions.md) so the
   omission reads as a decision, not a gap. Three new fidelity rows (8–10), taking the
   register to ten.
-- **Tree-shaking was broken and is now fixed.** Every component is annotated
-  `/* @__PURE__ */ forwardRef(…)`. Without it a call expression at module scope cannot be
-  proven side-effect-free, so **every** component was retained in **every** import — a
-  single-component import cost within 200 bytes of the whole library. Caught by the
-  `size-limit` budget when `Input` landed, not by review. Any new component must carry the
-  annotation or it silently reintroduces the defect.
-- **Next — `Dialog`.** Its obligation is already recorded below: in dark mode elevation is
-  a border, not a shadow.
+- **Tree-shaking was broken, fixed, and then found to be still half-broken.** The first
+  fix annotated `forwardRef(…)`; `Dialog` showed that `cva(…)` needed it too, and that
+  `buttonVariants` / `inputVariants` had been leaking since they shipped. Both rounds were
+  caught by the `size-limit` budget and neither by review. Current: full library
+  **11.67 kB** brotli, `{ Button }` **9.49 kB**, `{ Dialog }` **9.98 kB**, stylesheet
+  **5.76 kB**. Any new component must annotate _every_ module-scope call or it silently
+  reintroduces the defect.
+- **Done — `Dialog` (on `feat/dialog`, not yet released).** Built on the native
+  `<dialog>` + `showModal()`, so focus trapping, focus restoration, Escape, top-layer
+  stacking and background inertness come from the platform; a headless dependency would
+  have roughly tripled the package. Four Figma frames reduce to **one presentation axis**
+  (`size`, which changes the **width only** — 400/600/900), one semantic axis (`tone`,
+  where `warning` means `role="alertdialog"`), and one boolean (`dividers`, which
+  re-spaces the dialog rather than adding rules). `Scrollable` is **not API at all**: its
+  own prose is conditional, so it is a `max-height` plus `overflow-y: auto`. The scrim is
+  a real element inside a transparent full-viewport shell rather than `::backdrop`, which
+  is two years younger than `showModal()`. **Zero new fidelity rows** (7 / 0 / 3 / 0).
+  The dark-elevation obligation is discharged and now machine-enforced.
 
 ## Known gaps / state to remember
 
@@ -291,6 +308,29 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   explicitly, because a warm pnpm cache skips the postinstall that downloads it.
 - Cypress 13 warns React 19 / Vite 6 aren't officially supported (works; a Cypress
   15 bump clears it) — deferred.
+- **jsdom cannot see anything modal about `Dialog`, and `jest.setup.ts` shims around it.**
+  `jest-environment-jsdom@29` resolves **jsdom 20.0.3**, where `showModal`/`close` are
+  `undefined`. The shim toggles `open` and dispatches `close` — enough to mount, nothing
+  more. State the gap as what is _not_ proven rather than as where coverage went:
+  **jsdom cannot distinguish `showModal()` from `<dialog open>`, so Jest asserts nothing
+  about modality, background inertness, Escape, focus movement, focus restoration or
+  `::backdrop`.** Those live in `Dialog.cy.tsx`, which opens by asserting `showModal` is
+  native and that the element matches `:modal` — a check proven by installing the shim in
+  the browser and watching it go red.
+
+  Worth recording as a **fourth instance of the state-describing rule, this time in code
+  rather than in Markdown**: the shim was committed by an earlier session and documented
+  nowhere, so a passing Jest suite read as covering modality. The previous three lapses
+  were all documents, which is presumably why nobody thought to look in `jest.setup.ts`.
+
+- **Focus-trap wrap-around is not asserted, and cannot be here.** A Cypress component test
+  mounts into an iframe, and `showModal()` makes only its **own** document inert — so Tab
+  past the last stop in the ring leaves the frame and the AUT's `activeElement` becomes
+  `<body>`. Measured: from the close control, Tab reaches the body link, then Confirm,
+  then `<BODY>`. The spec therefore traverses the dialog's own stops and stops one short
+  of the end. The claim is true in a real top-level document; the harness cannot express
+  it. What _is_ asserted is the failure that actually happens in the wild — the background
+  refusing focus — and that one does fail against a non-modal dialog.
 - **No visual-regression coverage — acknowledged, not built.** The contrast contract
   catches a token change that degrades _accessibility_; nothing catches one that
   merely makes a component **look** different. And the culprit is usually a primitive
@@ -321,6 +361,15 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   `chore:` PR bumping the action majors — not folded into a component branch. Written down
   because the failure mode is time: if the repository sits for a few weeks, a green pipeline
   turns red on its own and the next session has no way to know it was seen coming.
+
+  **The same `chore:` PR should carry two more known-behind versions**, both recorded as
+  positions rather than problems: **Cypress 13 → 15** (clears the React 19 / Vite 6
+  warning) and **Jest 29 → 30**, which brings jsdom 26 and therefore a real `<dialog>`.
+  Note what the jsdom bump would and would not buy: it removes the shim, but jsdom still
+  does not paint, has no top layer and has no browser focus model, so the modality
+  assertions stay in Cypress regardless. It is worth doing to delete a stub, not to move
+  coverage.
+
 - **One axe engine, held there by a `pnpm.overrides` entry.** `jest-axe`, `cypress-axe` and
   `@storybook/addon-a11y` all resolve `axe-core@4.13.0`. They did not: the addon declares
   its own `^4.2.0` and had drifted a minor ahead of the gates, so the panel a reviewer reads

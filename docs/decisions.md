@@ -72,7 +72,7 @@ without flash, CSP compatibility, and control over the cascade.
 Two consequences of that choice are recorded where they bite. The stylesheet is compiled
 from `dist/index.js` rather than from `src`, so stories and test fixtures cannot leak
 utilities into a consumer's CSS. And it ships **without preflight**: a reset is an
-opinion about the document, and the document is not ours — installing three components
+opinion about the document, and the document is not ours — installing four components
 must not restyle a consumer's headings, lists and forms. The components therefore set
 what they depend on rather than inheriting it, which is why `box-border` is declared
 explicitly even though every browser already gives form controls border-box.
@@ -81,16 +81,15 @@ explicitly even though every browser already gives form controls border-box.
 
 Measured, not assumed:
 
-| Entry                        | Brotli   |
-| ---------------------------- | -------- |
-| Full library (ESM)           | 10.49 kB |
-| `import { Button }` only     | 9.59 kB  |
-| `import { IconButton }` only | 9.65 kB  |
-| `import { Input }` only      | 9.99 kB  |
-| Stylesheet                   | 5.41 kB  |
+| Entry                    | Brotli   |
+| ------------------------ | -------- |
+| Full library (ESM)       | 11.67 kB |
+| `import { Button }` only | 9.49 kB  |
+| `import { Dialog }` only | 9.98 kB  |
+| Stylesheet               | 5.76 kB  |
 
 Two things fall out of that, and both are worth saying plainly rather than presenting
-10.49 kB as a win.
+11.67 kB as a win.
 
 **Tree-shaking works — but it did not, and the budget is what caught it.** An earlier
 version of this section claimed tree-shaking worked on the evidence that "dropping
@@ -116,8 +115,41 @@ like a small saving; it was actually the absence of any saving at all. **A numbe
 real does not make the inference from it real**, and the only reason it surfaced is that
 the budget was written as a hard threshold rather than a tracked figure.
 
+### The same defect, one layer down: `cva(…)` is also a call at module scope
+
+Adding `Dialog` blew the budget again, and the cause was the sentence above read too
+narrowly. `/* @__PURE__ */` had been applied to `forwardRef(…)` and nowhere else — but
+`export const buttonVariants = cva(…)` is _also_ a call expression at module scope, and a
+bundler can no more prove that one pure than the other.
+
+Measured by the budget, not noticed by review:
+
+| Entry        | Dialog added, unannotated | `FOCUSABLE_SELECTOR` literal | all `cva` annotated |
+| ------------ | ------------------------- | ---------------------------- | ------------------- |
+| `{ Button }` | 10.03 kB                  | 9.93 kB                      | **9.49 kB**         |
+| `{ Dialog }` | 10.64 kB                  | 10.58 kB                     | **9.98 kB**         |
+| Full library | 11.65 kB                  | 11.67 kB                     | 11.67 kB            |
+
+Two things worth keeping. The first is that a Button-only import grew by **440 bytes the
+moment Dialog joined the barrel**, despite Dialog importing nothing from Button — which is
+the only reason any of this surfaced. The second is that `buttonVariants` and
+`inputVariants` had been leaking the same way **since they shipped**; the numbers above
+show a Button-only import falling below its own long-standing baseline once they were
+annotated. The defect was never Dialog's. Dialog just made it big enough to cross a
+threshold.
+
+A third instance turned up in the same pass and is worth naming because it looks harmless:
+`const FOCUSABLE_SELECTOR = [ … ].join(',')`. An array `.join` reads better than a long
+literal and costs 100 bytes of retained module, for exactly the same reason — `.join` is a
+call, and a call cannot be proven pure.
+
+So the rule in [CLAUDE.md](../CLAUDE.md) is broader than it was written: **no unannotated
+call expression at module scope**, not merely `forwardRef`. And the reason the rule can be
+stated at all is that the budget is a hard threshold rather than a tracked figure — a
+tracked figure would have drifted upward four times now without anyone objecting.
+
 **Almost all of it is one dependency.** `tailwind-merge` is ~14.6 kB brotli on its own
-(unminified); `clsx` is 0.2 kB and `cva` 0.9 kB. Our three components are a rounding error
+(unminified); `clsx` is 0.2 kB and `cva` 0.9 kB. Our four components are a rounding error
 on top of it — which is also why the shaking defect above hid for so long: when the floor
 is ~9.4 kB, a component failing to drop moves the total by a few percent. So the honest
 framing is that this package's floor is the cost of `cn()`, not the cost of the components.
@@ -688,6 +720,50 @@ dependencies, so the override forces it past its declared pin — worth naming a
 carries. It was taken with the whole suite as evidence: 153 Jest tests, 77 Cypress tests, and
 **no new violations** on the newer engine. A newer engine finding nothing is a result worth
 stating, because the alternative outcome would have been findings rather than obstacles.
+
+## Dialog is built on the native `<dialog>`, not on a dependency and not by hand
+
+Three options, and the deciding question is which list of risks to hold.
+
+**What `showModal()` supplies**, all of it hard to hand-roll correctly: a focus trap that
+survives content changing underneath it, focus restoration to whatever was focused
+before, Escape, LIFO stacking for nested dialogs, **top-layer rendering** — which escapes
+`overflow: hidden`, `transform` and every stacking context, something no portal can fix
+for a transformed ancestor — and **background inertness for pointer, keyboard and
+assistive technology at once**. That last is the failure the brief calls the most common
+modal defect, and one call closes all three routes.
+
+**Rejected: a headless dependency** (`@radix-ui/react-dialog`). Correct and
+battle-tested, but it pulls roughly ten internal packages into a library whose entire
+published surface is 11.67 kB brotli — and the entry above on `tailwind-merge` already
+names dependency share as the thing to watch here. Tripling the package for one component
+is the wrong trade at four components.
+
+**Rejected: hand-rolling.** Everything in the first paragraph would be re-implemented, and
+the parts that are hardest are exactly the parts that ship silently broken.
+
+It is also the same principle `Button` applied in using a real `<button>` and `Input` in
+using the native `disabled` attribute — with far more to buy here. A design system that
+reaches for a dependency where the platform already solves the problem is one that
+accumulates them.
+
+**The baseline, stated rather than assumed**, because it is the first question a reviewer
+should ask: `<dialog>` + `showModal()` is Chrome 37, Edge 79, **Safari 15.4** and
+**Firefox 98** — the last two both March 2022. That is a 2022 floor for a 2026 library,
+which is fine, but "fine" is a judgement someone else is entitled to check.
+
+**What the platform does not supply, and is therefore ours:** page scroll locking (the
+background is inert but still scrolls under the wheel), backdrop-click dismissal, and the
+initial focus target. The last is a real decision rather than a gap — the close control is
+first in DOM order because the design puts it in the title row, and landing a keyboard
+user there tells them only how to leave, so the resolver deliberately skips it.
+
+**And one cost accepted rather than solved: there is no exit animation.** `close()` leaves
+the top layer immediately, and the modern remedy (`@starting-style` with
+`transition-behavior: allow-discrete`) has a 2024 baseline — narrower than the component's
+own. The Figma file specifies no motion for Dialog, so this is a recorded omission rather
+than a compromise: a hard problem converted into a decision by checking whether anyone
+asked for it.
 
 ## The scrim is a real element, because `::backdrop` is younger than `<dialog>`
 
