@@ -199,6 +199,13 @@ Ten decisions across four components, introduced seven / zero / three / zero. Ea
 measured, each turns on a specific criterion, and each was the smallest change that clears
 it.
 
+**Each zero carries its mechanism, because a count without one ages into something a reader
+has to take on trust.** `IconButton`'s zero is that implementing a documented capability is
+fidelity, not divergence. `Dialog`'s is that five rows were extended and four differences
+are argued as non-rows above — both lists written out, so the judgement stays available to
+a reader instead of being buried in a total. A zero that cannot show its working is
+indistinguishable from having stopped counting.
+
 The number to watch is not the total but the rate, and the rate is falling — which is what a
 proportionate approach looks like. Thirty rows would be a different thing entirely: at that
 point the honest description is that we are redesigning rather than implementing. Counting
