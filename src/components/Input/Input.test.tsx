@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { createRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -72,7 +72,7 @@ describe('Input — rendering', () => {
     expect(screen.getByLabelText('Email').closest('.w-64')).toBeInTheDocument();
   });
 
-  it('forwards a ref to the control itself, not the wrapper', () => {
+  it('forwards a callback ref to the control itself, not the wrapper', () => {
     let node: HTMLInputElement | null = null;
     render(
       <Input
@@ -83,6 +83,17 @@ describe('Input — rendering', () => {
       />
     );
     expect(node).toBeInstanceOf(HTMLInputElement);
+  });
+
+  it('forwards an object ref too', () => {
+    // Both forms, because the component merges the consumer's ref with its own handle
+    // (needed for focus restoration) and the merge has a branch per form. Testing only
+    // the callback form leaves the object branch unexecuted — the commoner form in
+    // consumer code, since `useRef` is what most people reach for.
+    const ref = createRef<HTMLInputElement>();
+    render(<Input label="Email" ref={ref} />);
+    expect(ref.current).toBeInstanceOf(HTMLInputElement);
+    expect(ref.current).toBe(screen.getByRole('textbox'));
   });
 });
 
