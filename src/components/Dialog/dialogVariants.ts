@@ -68,7 +68,10 @@ export const dialogShellVariants = cva([
  * with no viewport to run out of; a 900px card on a 375px phone needs a gutter, and the
  * card's `w-full` below lets it shrink into one.
  */
-export const dialogScrimVariants = cva(['absolute inset-0 flex items-center justify-center p-4']);
+export const dialogScrimVariants = cva([
+  'absolute inset-0 flex items-center justify-center p-4',
+  'bg-scrim',
+]);
 
 /**
  * The visible card.
