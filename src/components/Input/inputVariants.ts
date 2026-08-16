@@ -22,6 +22,12 @@ import { cva } from 'class-variance-authority';
  * docs/patterns.md: nothing composes it, but the component's own body is `useId`
  * wiring, `aria-describedby` assembly and focus management, and interleaving that
  * with class strings makes both harder to read.
+ *
+ * Every `cva(…)` below is annotated `/* @__PURE__ *\/` for the same reason the component
+ * carries one: a call expression at module scope cannot be proven side-effect-free, so it
+ * is retained along with everything it references. These seven had been leaking since
+ * Input shipped; the defect was found by the size-limit budget while adding Dialog, and
+ * the measurements are in dialogVariants.ts.
  */
 
 /** Shared by every size step. Values transcribed from the `space` section (11:8099). */
@@ -55,7 +61,7 @@ const SIZE_STEPS = {
  * Tailwind happens to emit them in; re-declaring `hover` inside each state attribute
  * makes the precedence explicit instead of emergent.
  */
-export const inputVariants = cva(
+export const inputVariants = /* @__PURE__ */ cva(
   [
     // `group` so the affixes and icons can read this box's disabled state; they cannot
     // use `peer-*` because a prefix sits BEFORE the input in the DOM.
@@ -126,7 +132,7 @@ export const inputVariants = cva(
  * without this one declaration the field would render in the UA's font at the UA's size
  * while the affixes beside it rendered in ours.
  */
-export const inputControlVariants = cva([
+export const inputControlVariants = /* @__PURE__ */ cva([
   'min-w-0 flex-1',
   '[font:inherit]',
   'border-0 bg-transparent p-0 outline-none',
@@ -144,13 +150,16 @@ export const inputControlVariants = cva([
  * leaves it in the accessibility tree, because the legitimate case (a toolbar search
  * whose purpose is obvious from context) still needs a programmatic name.
  */
-export const inputLabelVariants = cva(['font-sans font-medium text-content-primary'], {
-  variants: {
-    size: { sm: SIZE_STEPS.sm.text, md: SIZE_STEPS.md.text, lg: SIZE_STEPS.lg.text },
-    hidden: { true: 'sr-only', false: '' },
-  },
-  defaultVariants: { size: 'md', hidden: false },
-});
+export const inputLabelVariants = /* @__PURE__ */ cva(
+  ['font-sans font-medium text-content-primary'],
+  {
+    variants: {
+      size: { sm: SIZE_STEPS.sm.text, md: SIZE_STEPS.md.text, lg: SIZE_STEPS.lg.text },
+      hidden: { true: 'sr-only', false: '' },
+    },
+    defaultVariants: { size: 'md', hidden: false },
+  }
+);
 
 /**
  * Hint and error, 4px below the field (the yellow `4px` callout in `space`, which
@@ -162,7 +171,7 @@ export const inputLabelVariants = cva(['font-sans font-medium text-content-prima
  * no content generates no line box, so with the margin suppressed it occupies nothing —
  * present in the accessibility tree, absent from the layout.
  */
-export const inputMessageVariants = cva(['mt-1 font-sans empty:mt-0'], {
+export const inputMessageVariants = /* @__PURE__ */ cva(['mt-1 font-sans empty:mt-0'], {
   variants: {
     size: { sm: SIZE_STEPS.sm.text, md: SIZE_STEPS.md.text, lg: SIZE_STEPS.lg.text },
     tone: {
@@ -182,7 +191,7 @@ export const inputMessageVariants = cva(['mt-1 font-sans empty:mt-0'], {
  * failure `content-secondary` was already remapped 500 → 600 to fix, so this reuses an
  * existing decision rather than adding a divergence row.
  */
-export const inputAffixVariants = cva([
+export const inputAffixVariants = /* @__PURE__ */ cva([
   'shrink-0 select-none text-content-secondary',
   // Driven from the field's `group`, not `peer-disabled`. A prefix precedes the input
   // in the DOM and CSS sibling combinators only look forward, so `peer-*` would style
@@ -191,7 +200,7 @@ export const inputAffixVariants = cva([
 ]);
 
 /** Decorative glyphs. Hidden from the accessible name — the label carries it. */
-export const inputIconVariants = cva(
+export const inputIconVariants = /* @__PURE__ */ cva(
   [
     'inline-flex shrink-0 text-content-secondary [&>svg]:size-full',
     'group-data-[disabled=true]:text-content-disabled',
@@ -212,7 +221,7 @@ export const inputIconVariants = cva(
  * — at `sm` that means the button is as tall as the field itself, which is correct
  * rather than an accident: a 12px hit area would fail the criterion outright.
  */
-export const inputClearVariants = cva(
+export const inputClearVariants = /* @__PURE__ */ cva(
   [
     'inline-flex shrink-0 cursor-pointer items-center justify-center',
     'size-6 rounded-control', // 24px target floor, at every size

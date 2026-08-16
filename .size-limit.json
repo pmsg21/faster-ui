@@ -13,6 +13,13 @@
     "ignore": ["react", "react-dom"]
   },
   {
+    "name": "Dialog only (ESM, tree-shaken)",
+    "path": "dist/index.js",
+    "import": "{ Dialog }",
+    "limit": "10.5 kB",
+    "ignore": ["react", "react-dom"]
+  },
+  {
     "name": "Stylesheet",
     "path": "dist/styles.css",
     "limit": "8 kB"

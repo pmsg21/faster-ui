@@ -113,14 +113,13 @@ function WarningIcon() {
  * system's `Button` disables with `aria-disabled` precisely so the control stays
  * reachable and announces itself, and skipping it here would undo that.
  */
-const FOCUSABLE_SELECTOR = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])',
-].join(',');
+// Written as one literal rather than an array `.join(',')`, which reads better but is a
+// CALL EXPRESSION AT MODULE SCOPE — the exact construct that broke tree-shaking across
+// this library once already (docs/decisions.md). A bundler cannot prove `.join` is
+// side-effect-free, so the constant is retained, and retaining it retains what it is
+// reachable from. Measured: the array form cost a Button-only import 440 bytes of Dialog.
+const FOCUSABLE_SELECTOR =
+  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 /**
  * Page scroll lock, ref-counted so nested dialogs do not release it early.

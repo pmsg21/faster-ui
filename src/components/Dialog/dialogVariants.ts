@@ -1,6 +1,25 @@
 import { cva } from 'class-variance-authority';
 
 /**
+ * ── WHY EVERY `cva(…)` BELOW IS ANNOTATED `/* @__PURE__ *\/` ────────────────
+ *
+ * Same defect as the one `docs/decisions.md` records for `forwardRef`, one layer down.
+ * `cva(…)` is a call expression at module scope, a bundler cannot prove a call is
+ * side-effect-free, so the binding is retained — and retaining it retains the whole
+ * class matrix even for a consumer who never imports this component.
+ *
+ * Measured, not theorised. With Dialog added to the barrel and these calls unannotated,
+ * a `import { Button }`-only bundle grew from 9.59 kB to 10.03 kB — 440 bytes of a
+ * component the consumer never named. Annotating recovered it. The same was then true of
+ * `buttonVariants` and `inputVariants`, which had been leaking quietly since they shipped:
+ * annotating all three took a Button-only import to 9.49 kB and a Dialog-only one from
+ * 10.58 to 9.98.
+ *
+ * The `size-limit` budget is the only reason any of this was visible, which is the
+ * argument for writing budgets as hard thresholds rather than tracked figures.
+ */
+
+/**
  * The class matrix for `Dialog`.
  *
  * Like `Input` this is barely a matrix, but for the opposite reason. `Input` had one
@@ -46,7 +65,7 @@ import { cva } from 'class-variance-authority';
  * `backdrop:bg-transparent` is the one ::backdrop rule left, and it compiles to a
  * literal rather than a `var()`, so it is safe everywhere `<dialog>` exists.
  */
-export const dialogShellVariants = cva([
+export const dialogShellVariants = /* @__PURE__ */ cva([
   // The UA sheet gives a modal dialog `position: fixed`, `margin: auto` and a
   // max-width/height box. All of it is replaced, because the shell is now a viewport
   // cover rather than the thing the user sees.
@@ -68,7 +87,7 @@ export const dialogShellVariants = cva([
  * with no viewport to run out of; a 900px card on a 375px phone needs a gutter, and the
  * card's `w-full` below lets it shrink into one.
  */
-export const dialogScrimVariants = cva([
+export const dialogScrimVariants = /* @__PURE__ */ cva([
   'absolute inset-0 flex items-center justify-center p-4',
   'bg-scrim',
 ]);
@@ -90,7 +109,7 @@ export const dialogScrimVariants = cva([
  * child's default `min-height: auto` refuses to shrink below its content, which is the
  * classic reason an `overflow-y: auto` region silently never scrolls.
  */
-export const dialogCardVariants = cva(
+export const dialogCardVariants = /* @__PURE__ */ cva(
   [
     'relative flex w-full flex-col',
     'max-h-full overflow-hidden',
@@ -124,7 +143,7 @@ export const dialogCardVariants = cva(
  *
  * Horizontal padding is 24 in both, at every size.
  */
-export const dialogSectionVariants = cva(['px-6'], {
+export const dialogSectionVariants = /* @__PURE__ */ cva(['px-6'], {
   variants: {
     section: {
       header: 'flex shrink-0 items-start justify-between gap-2',
@@ -156,7 +175,7 @@ export const dialogSectionVariants = cva(['px-6'], {
 });
 
 /** Title — Medium/Title 18/26, `Neutral/700`. */
-export const dialogTitleVariants = cva(['m-0 text-title text-content-primary']);
+export const dialogTitleVariants = /* @__PURE__ */ cva(['m-0 text-title text-content-primary']);
 
 /**
  * The close control.
@@ -167,7 +186,7 @@ export const dialogTitleVariants = cva(['m-0 text-title text-content-primary']);
  * how big the thing you press should be. `-mr-1` pulls the enlarged box back so the
  * glyph still sits on the drawn 24px margin instead of the padding shifting it inwards.
  */
-export const dialogCloseVariants = cva([
+export const dialogCloseVariants = /* @__PURE__ */ cva([
   'inline-flex size-6 shrink-0 cursor-pointer items-center justify-center',
   '-mr-1 rounded-control',
   'text-content-secondary hover:text-content-primary',
@@ -186,6 +205,6 @@ export const dialogCloseVariants = cva([
  * `role="alertdialog"`. The `aria-hidden` in `Dialog.tsx` is therefore the argument, not
  * an implementation detail, and it is asserted in `Dialog.test.tsx`.
  */
-export const dialogWarningIconVariants = cva([
+export const dialogWarningIconVariants = /* @__PURE__ */ cva([
   'mt-[0.1875rem] inline-flex size-4 shrink-0 text-content-warning [&>svg]:size-full',
 ]);

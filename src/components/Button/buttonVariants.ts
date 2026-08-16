@@ -20,8 +20,13 @@ import { cva } from 'class-variance-authority';
  * Where the shipped colours differ from the file — no cyan on text, the label
  * pinned to `content-danger`, the underline on link — the reasoning and the
  * measured ratios are in docs/design-fidelity.md.
+ *
+ * `/* @__PURE__ *\/` for the same reason the component itself carries one: `cva(…)` is a
+ * call expression at module scope, and an unprovable call is a retained one. This was
+ * leaking quietly from the day Button shipped — annotating it took a Button-only import
+ * from 9.63 kB to 9.49 kB. Found while adding Dialog; see dialogVariants.ts.
  */
-export const buttonVariants = cva(
+export const buttonVariants = /* @__PURE__ */ cva(
   [
     'relative inline-flex cursor-pointer items-center justify-center gap-1',
     // box-border fixes nothing today — browsers already give form controls
