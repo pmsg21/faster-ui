@@ -261,7 +261,18 @@ export const Input = /* @__PURE__ */ forwardRef<HTMLInputElement, InputProps>(fu
         </p>
       ) : null}
 
-      <p id={errorId} role="alert" className={inputMessageVariants({ size, tone: 'error' })}>
+      {/*
+        `data-slot="error"` is a structural slot name, consistent with the field/icon/clear
+        slots above — NOT an accessibility marker. Stories and specs use it to name this
+        node when narrowing axe's `color-contrast` rule around the recorded `content-danger`
+        exemption, which keeps that decision out of a consumer's DOM.
+      */}
+      <p
+        id={errorId}
+        role="alert"
+        data-slot="error"
+        className={inputMessageVariants({ size, tone: 'error' })}
+      >
         {error}
       </p>
     </div>

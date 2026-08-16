@@ -3,7 +3,14 @@ import type { ReactNode } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
 
+import { CONTENT_DANGER_ON_WHITE, storyAcceptedContrast } from '../../../a11y.config';
 import { Input } from './Input';
+
+/** Shared decision, narrowed to Input's error node. See a11y.config.ts. */
+const INPUT_ERROR_EXEMPTION = {
+  ...CONTENT_DANGER_ON_WHITE,
+  exemptSelector: '[data-slot="error"]',
+};
 
 /**
  * Story titles mirror the Figma section taxonomy. The Input page sits under **Data
@@ -104,7 +111,12 @@ function FidelityRow({
         {registerNumber}. {difference}
       </div>
       <div className="flex flex-wrap items-start gap-10">
-        <div className="grid w-56 gap-2">
+        {/*
+          Marked so axe's color-contrast rule skips this cell and this cell only. The
+          column renders values the token layer deliberately rejects; the Shipped column
+          beside it stays checked. See a11y.config.ts.
+        */}
+        <div data-a11y-accepted-contrast className="grid w-56 gap-2">
           <div className="text-caption text-content-secondary">As drawn in Figma</div>
           {asDrawn}
         </div>
@@ -219,17 +231,13 @@ export const ErrorState: Story = {
     error: 'Enter a valid email address.',
     defaultValue: 'not-an-email',
   },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'The presence of `error` alone sets `aria-invalid` and the danger border. The error ' +
-          'region is always in the DOM with `role="alert"` and only its content toggles, ' +
-          'because screen readers announce a live region’s content changes reliably but ' +
-          'vary on a region that appears already-populated.',
-      },
-    },
-  },
+  parameters: storyAcceptedContrast(
+    INPUT_ERROR_EXEMPTION,
+    'The presence of `error` alone sets `aria-invalid` and the danger border. The error ' +
+      'region is always in the DOM with `role="alert"` and only its content toggles, ' +
+      'because screen readers announce a live region’s content changes reliably but ' +
+      'vary on a region that appears already-populated.'
+  ),
 };
 
 export const HintAndError: Story = {
@@ -241,15 +249,11 @@ export const HintAndError: Story = {
     defaultValue: 'abc',
     placeholder: '',
   },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          '`aria-describedby` lists the hint **before** the error, so a screen-reader user ' +
-          'hears the rule and then how they broke it.',
-      },
-    },
-  },
+  parameters: storyAcceptedContrast(
+    INPUT_ERROR_EXEMPTION,
+    '`aria-describedby` lists the hint **before** the error, so a screen-reader user ' +
+      'hears the rule and then how they broke it.'
+  ),
 };
 
 export const Disabled: Story = {
@@ -269,18 +273,14 @@ export const Disabled: Story = {
 };
 
 export const Focus: Story = {
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Tab into the field. Focus is **two** things at once: a cyan `line-focus` inner ' +
-          'border, which is what the design draws, and a neutral `focus-strong` outline at 2px ' +
-          'offset, which is what actually satisfies SC 1.4.11 — cyan measures 2.12:1 against a ' +
-          '3.0 bar. The design’s other affordance, a 16%-alpha cyan halo, is not shipped; ' +
-          'its token was removed rather than left unused.',
-      },
-    },
-  },
+  parameters: storyAcceptedContrast(
+    INPUT_ERROR_EXEMPTION,
+    'Tab into the field. Focus is **two** things at once: a cyan `line-focus` inner ' +
+      'border, which is what the design draws, and a neutral `focus-strong` outline at 2px ' +
+      'offset, which is what actually satisfies SC 1.4.11 — cyan measures 2.12:1 against a ' +
+      '3.0 bar. The design’s other affordance, a 16%-alpha cyan halo, is not shipped; ' +
+      'its token was removed rather than left unused.'
+  ),
   render: (args) => (
     <div className="flex w-80 flex-col gap-4">
       <button type="button" className="text-body text-content-secondary self-start underline">
@@ -294,16 +294,12 @@ export const Focus: Story = {
 
 export const EveryState: Story = {
   name: 'Every state',
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'The five states the Figma `State` axis draws — Default, Hover, Pressed & Focus, ' +
-          'Error, Disabled — none of which is a prop. Hover and focus are shown by ' +
-          'interacting; the other three are rendered.',
-      },
-    },
-  },
+  parameters: storyAcceptedContrast(
+    INPUT_ERROR_EXEMPTION,
+    'The five states the Figma `State` axis draws — Default, Hover, Pressed & Focus, ' +
+      'Error, Disabled — none of which is a prop. Hover and focus are shown by ' +
+      'interacting; the other three are rendered.'
+  ),
   render: (args) => (
     <div className="flex w-80 flex-col gap-6">
       <Input {...args} label="Default" />
@@ -424,13 +420,10 @@ export const HiddenLabel: Story = {
 
 export const LongContent: Story = {
   name: 'Long content',
-  parameters: {
-    docs: {
-      description: {
-        story: 'Long labels, hints and errors wrap; the field keeps its height and geometry.',
-      },
-    },
-  },
+  parameters: storyAcceptedContrast(
+    INPUT_ERROR_EXEMPTION,
+    'Long labels, hints and errors wrap; the field keeps its height and geometry.'
+  ),
   render: (args) => (
     <div className="w-72">
       <Input

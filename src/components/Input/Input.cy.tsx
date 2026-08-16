@@ -1,5 +1,21 @@
+import {
+  acceptedContrastSpec,
+  CONTENT_DANGER_ON_WHITE,
+  PAGE_STRUCTURE_RULES_NOT_APPLICABLE,
+} from '../../../a11y.config';
+import { checkA11y, checkA11yWithAcceptedContrast } from '../../../cypress/support/a11y';
 import { Input } from './Input';
 import type { InputSize } from './Input';
+
+/**
+ * The library's one accepted contrast exemption, narrowed to Input's error node. The
+ * ratio, register row and reason come from the shared decision; only the blast radius is
+ * local.
+ */
+const INPUT_ERROR_EXEMPTION = {
+  ...CONTENT_DANGER_ON_WHITE,
+  exemptSelector: '[data-slot="error"]',
+};
 
 /**
  * These specs assert what jsdom CANNOT: real computed geometry, real compiled CSS,
@@ -31,34 +47,7 @@ function mountAfterSentinel(node: React.ReactNode, theme: 'light' | 'dark' = 'li
   cy.findByTestId('sentinel').focus();
 }
 
-/**
- * Page-level rules that cannot apply to a component mounted in isolation. Everything
- * else stays on, `color-contrast` above all — it is the reason to run axe in a real
- * browser at all.
- *
- * `region` is the third of these, and it is new here rather than copied from Button:
- * it flags content sitting outside any landmark, and Button never tripped it because
- * every text node it renders is inside a `<button>`. Input is the first component with
- * bare text in the page — a `<label>` and a `<p>` — so it is the first to surface a
- * rule that was always going to apply. Worth naming: Button's identical-looking
- * constant is incomplete for the same reason, it just has nothing to catch it out.
- */
-const PAGE_RULES_NOT_APPLICABLE = {
-  rules: {
-    'landmark-one-main': { enabled: false },
-    'page-has-heading-one': { enabled: false },
-    region: { enabled: false },
-  },
-};
-
 const SIZES: InputSize[] = ['sm', 'md', 'lg'];
-
-function checkA11y(options: Record<string, unknown> = PAGE_RULES_NOT_APPLICABLE) {
-  cy.injectAxe();
-  cy.checkA11y(undefined, options, (violations) => {
-    cy.task('logA11yViolations', violations, { log: false });
-  });
-}
 
 const field = () => cy.get('[data-slot="field"]');
 
@@ -342,20 +331,41 @@ describe('Input — accessibility in a real browser', () => {
     checkA11y();
   });
 
-  it('flags only the recorded danger exemption on an errored field', () => {
-    // axe independently confirms the number the contract computes: `content-danger`
-    // (danger-700) on white is 4.21, under the 4.5 AA bar. That exemption is deliberate
-    // and recorded — danger-700 is the darkest step the ramp offers, and red carries
-    // meaning on an error message (docs/design-fidelity.md, row 4).
-    //
-    // colour-contrast is disabled HERE ONLY, and the exemption is not unwatched: the
-    // contrast contract pins it at 4.21 and fails if it drifts in either direction.
+  it('accepts the recorded danger exemption on an errored field', () => {
+    // `content-danger` (danger-700) on white is 4.21, under the 4.5 AA bar — the exemption
+    // recorded as row 4 of docs/design-fidelity.md. It is narrowed to the error node
+    // rather than switching `color-contrast` off, so everything else here is still checked.
     mountOnSurface(<Input label="Email address" error="Enter a valid email address" />);
-    checkA11y({
-      rules: {
-        ...PAGE_RULES_NOT_APPLICABLE.rules,
-        'color-contrast': { enabled: false },
+    checkA11yWithAcceptedContrast(INPUT_ERROR_EXEMPTION);
+  });
+
+  it('still reports a DIFFERENT contrast failure in the same mount', () => {
+    // The provocation that makes the test above worth anything. If narrowing the rule had
+    // effectively disabled it, this would pass silently and the exemption would be an
+    // illusion — the strongest-looking option while being the weakest.
+    mountOnSurface(
+      <>
+        <Input label="Email address" error="Enter a valid email address" />
+        <p className="text-[#CACACA]">Unmarked low-contrast text — must still be caught</p>
+      </>
+    );
+
+    cy.injectAxe();
+    cy.configureAxe(acceptedContrastSpec(INPUT_ERROR_EXEMPTION));
+
+    const reported: string[] = [];
+    cy.checkA11y(
+      undefined,
+      PAGE_STRUCTURE_RULES_NOT_APPLICABLE,
+      (violations) => {
+        reported.push(...violations.map((violation) => violation.id));
       },
+      // Do not throw — this spec asserts that a violation IS reported.
+      true
+    );
+
+    cy.then(() => {
+      expect(reported, 'color-contrast is still enabled').to.include('color-contrast');
     });
   });
 });

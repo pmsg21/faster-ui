@@ -2,7 +2,19 @@ import type { ReactNode } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
 
+import {
+  ACCEPTED_CONTRAST_ATTRIBUTE,
+  CONTENT_DANGER_ON_WHITE,
+  storyAcceptedContrast,
+  storyRendersFigmaAsDrawn,
+} from '../../../a11y.config';
 import { Button } from './Button';
+
+/** Shared decision, narrowed to a marked wrapper. See a11y.config.ts. */
+const BUTTON_DANGER_EXEMPTION = {
+  ...CONTENT_DANGER_ON_WHITE,
+  exemptSelector: `[${ACCEPTED_CONTRAST_ATTRIBUTE}]`,
+};
 
 /**
  * Story titles mirror the Figma section taxonomy — Button lives under **General**,
@@ -121,7 +133,12 @@ function FidelityRow({
         {registerNumber}. {difference}
       </div>
       <div className="flex flex-wrap items-start gap-10">
-        <div className="grid gap-2">
+        {/*
+          Marked so axe's color-contrast rule skips this cell and this cell only. The
+          column renders values the token layer deliberately rejects; the Shipped column
+          beside it stays checked. See a11y.config.ts.
+        */}
+        <div data-a11y-accepted-contrast className="grid gap-2">
           <div className="text-caption text-content-secondary">As drawn in Figma</div>
           {asDrawn}
         </div>
@@ -147,16 +164,11 @@ function FidelityRow({
  */
 export const DesignFidelity: Story = {
   name: 'Design fidelity',
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Seven differences: six changes and one addition. Each was the smallest change ' +
-          'that clears a specific WCAG criterion, and each is fixed in the semantic token ' +
-          'layer — every primitive still matches its Figma node exactly.',
-      },
-    },
-  },
+  parameters: storyRendersFigmaAsDrawn(
+    'Seven differences: six changes and one addition. Each was the smallest change ' +
+      'that clears a specific WCAG criterion, and each is fixed in the semantic token ' +
+      'layer — every primitive still matches its Figma node exactly.'
+  ),
   render: () => (
     <div className="max-w-3xl">
       <FidelityRow
@@ -299,17 +311,16 @@ export const AllVariants: Story = {
 
 export const DangerTone: Story = {
   name: 'Danger tone',
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Danger is a **tone**, not a variant: it applies across all four variants, exactly ' +
-          'as the Figma file models it with a parallel "Danger Button" frame.',
-      },
-    },
-  },
+  parameters: storyAcceptedContrast(
+    BUTTON_DANGER_EXEMPTION,
+    'Danger is a **tone**, not a variant: it applies across all four variants, exactly ' +
+      'as the Figma file models it with a parallel "Danger Button" frame.'
+  ),
   render: (args) => (
-    <div className="flex flex-wrap items-center gap-4">
+    // Marked because the non-solid danger labels carry the recorded 4.21 exemption. The
+    // solid variant inside is NOT exempt in principle (7.78) — it sits here only because
+    // the four belong together visually; every other story on this page stays fully checked.
+    <div data-a11y-accepted-contrast className="flex flex-wrap items-center gap-4">
       <Button {...args} tone="danger" variant="primary">
         Delete
       </Button>

@@ -1,3 +1,4 @@
+import { checkA11y } from '../../../cypress/support/a11y';
 import type { ButtonSize } from '../Button';
 import { IconButton } from './IconButton';
 import type { IconButtonVariant } from './IconButton';
@@ -11,20 +12,6 @@ import type { IconButtonVariant } from './IconButton';
 function mountOnSurface(node: React.ReactNode, theme: 'light' | 'dark' = 'light') {
   document.documentElement.dataset.theme = theme;
   cy.mount(<div className="bg-surface-base flex flex-wrap items-start gap-4 p-6">{node}</div>);
-}
-
-const PAGE_RULES_NOT_APPLICABLE = {
-  rules: {
-    'landmark-one-main': { enabled: false },
-    'page-has-heading-one': { enabled: false },
-  },
-};
-
-function checkA11y() {
-  cy.injectAxe();
-  cy.checkA11y(undefined, PAGE_RULES_NOT_APPLICABLE, (violations) => {
-    cy.task('logA11yViolations', violations, { log: false });
-  });
 }
 
 const SIZES: ButtonSize[] = ['sm', 'md', 'lg'];
