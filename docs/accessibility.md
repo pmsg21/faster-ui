@@ -61,11 +61,13 @@ level** — and, crucially, made impossible to ship _unknowingly_.
   border, hover fill). The shipped label is `content-secondary` at rest and darkens to
   `content-primary` on hover and press (8.72 → 15.12/12.60); the design's hue shift
   becomes a lightness shift, measured at ΔE 20.1 so the state stays perceptible.
-- **Focus ring** (`line-focus`/`focus` on white): 1.88–2.12:1 vs the 3.0 that
-  SC 1.4.11 requires. Cyan cannot be the indicator of record, so it isn't:
-  `focus-strong` (neutral) carries focus at 15.79–16.48 and is _required_ to
-  clear the bar in both modes, while cyan `focus` stays available as a
-  decorative inner ring. A control's focus state cannot rest on an exemption.
+- **Focus ring** (`line-focus` on white): 2.12:1 vs the 3.0 that SC 1.4.11 requires.
+  Cyan cannot be the indicator of record, so it isn't: `focus-strong` (neutral) carries
+  focus at 15.79–16.48 and is _required_ to clear the bar in both modes. A control's
+  focus state cannot rest on an exemption. `line-focus` survives as the **decorative
+  inner border** of a focused field, which is what Figma draws; the second cyan token
+  that used to sit beside it (`focus`, primary-500, the 16%-alpha halo) was removed
+  rather than shipped — see [tokens.md](tokens.md).
 - **Danger text on white** (`content-danger`): 4.21:1 — `danger-700` is the darkest the
   ramp offers and still misses 4.5. Mitigation: icon + the red, or a tinted surface.
 - **Danger pressed label** (`content-on-accent` on `danger-solid-active`): 3.91:1 — above
@@ -112,7 +114,6 @@ in dark the brand hues sit on dark surfaces, where they have contrast to spare.
 | content-danger    | danger-subtle        | 3.85 ⚠️  | 6.16 ✅  |
 | content-danger    | danger-subtle-active | 3.69 ⚠️  | 14.82 ✅ |
 | line-focus        | surface-raised       | 2.12 ⚠️  | 8.76 ✅  |
-| focus             | surface-raised       | 1.88 ⚠️  | 8.76 ✅  |
 | focus-strong      | surface-base         | 15.79 ✅ | 15.79 ✅ |
 | focus-strong      | surface-raised       | 16.48 ✅ | 15.79 ✅ |
 

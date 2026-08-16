@@ -507,6 +507,32 @@ with no consumer. Because the `./styles.css` export is still withdrawn, nothing 
 can depend on it, so it is simply removed. Exercising the policy while the cost is zero
 is the point — the mechanism gets proven before it is load-bearing.
 
+### The second application is the one that costs something
+
+`focus` (primary-500) was the token reserved for the cyan halo Figma draws under a focused
+field — `0 0 1px 1px rgba(21,197,206,.16)`. Extracting `Input` showed we would not ship it:
+a 16%-alpha cyan glow beneath a neutral 2px focus ring is invisible to a sighted user and
+misleading in the token layer, since it implies the system offers a focus affordance that
+nothing consumes. So it goes, the same way `accent-subtle` did.
+
+The difference is that **this one is no longer free**, and that difference is the whole
+reason to record it. `accent-subtle` was removed while `./styles.css` was still withdrawn
+from the package exports — nothing outside the repo could name it. That export is live as
+of `0.1.0`, so `--color-focus` has been in a published stylesheet, and a consumer could be
+referencing it today. Removing it silently would be exactly the breakage the policy exists
+to prevent.
+
+So the policy's step 2 does real work for the first time: the removal is stated in the
+changeset, which carries it into `CHANGELOG.md` and the release notes rather than leaving
+it in a commit nobody reads. Steps 1 and 3 do not apply — there is no replacement to
+deprecate toward and nothing mechanical to codemod, because the token had no consumer to
+migrate. Step 4 is satisfied by the version bump.
+
+Worth naming the general shape: **the cost of removing something is set by what has already
+been published, not by how many internal consumers it has.** Both tokens had zero consumers
+in this repository. Only one of them was safe to delete quietly, and the thing that
+distinguished them was a line in `package.json`.
+
 ## The Figma file we extract from is a duplicate, and that is not a mistake
 
 The task brief links `WYuHdUuUq31HzkdJhoKwXl`; every node id in this repository resolves

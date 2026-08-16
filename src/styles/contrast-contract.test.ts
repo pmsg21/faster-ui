@@ -172,9 +172,16 @@ describe('the guards actually bite', () => {
   it('flags a contract reference the theme no longer defines', () => {
     const shrunk = clone();
     // Both modes — colorTokens unions them, so a token surviving in either is defined.
-    delete shrunk.light['focus'];
-    delete shrunk.dark['focus'];
-    expect(findStaleReferences(shrunk)).toContain('focus');
+    //
+    // The specimen is `focus-strong` deliberately. This test used to delete `focus`
+    // (primary-500), which was then removed from the theme for real when Input shipped
+    // without the decorative cyan halo — and a fixture that deletes a token which no
+    // longer exists asserts nothing while still passing its own setup. `focus-strong`
+    // is the focus indicator of record: it cannot leave the theme without the required
+    // pairs below failing first, so this fixture cannot rot the same way.
+    delete shrunk.light['focus-strong'];
+    delete shrunk.dark['focus-strong'];
+    expect(findStaleReferences(shrunk)).toContain('focus-strong');
   });
 
   it('flags a shared-value claim that no longer holds', () => {

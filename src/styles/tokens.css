@@ -162,7 +162,12 @@
   --color-surface-raised: var(--white); /* card, default input field */
   --color-surface-overlay: var(--white); /* dialog, popover */
   --color-surface-sunken: var(--neutral-100); /* recessed well */
-  --color-surface-muted: var(--neutral-200); /* disabled control fill */
+  /* Disabled control fill. Re-pointed 200 → 50 when Input became its first consumer:
+   * Figma draws the disabled field at neutral-50 over a neutral-200 border, and until
+   * Input there was nothing consuming this token to check the guess against (Button's
+   * disabled fills are accent-solid-disabled / danger-solid-disabled). Same correction
+   * accent-subtle got — the first real consumer is what tests a token, not the naming. */
+  --color-surface-muted: var(--neutral-50);
   --color-surface-hover: var(--neutral-100); /* ghost/row hover */
   --color-surface-active: var(--neutral-300); /* ghost/row pressed — one step past hover */
 
@@ -205,12 +210,18 @@
    * still reads as a distinct press (ΔE 3.7 from the hover wash). See a11y. */
   --color-danger-subtle-active: var(--danger-200);
 
-  /* Focus ring (Input focus 500/600) — brand conflict vs SC 1.4.11, see a11y */
-  --color-focus: var(--primary-500);
+  /* Focus. There is deliberately no `--color-focus` (primary-500) any more: it was
+   * reserved for the decorative cyan halo Figma draws on a focused field
+   * (0 0 1px 1px rgba(21,197,206,.16)), and Input — the only component that would
+   * have consumed it — does not ship that halo. The neutral ring below is what makes
+   * focus visible, and layering a 16%-alpha cyan glow underneath it adds nothing a
+   * sighted user can see while implying the system contains an indicator it does not.
+   * The cyan is still present on a focused field, as `line-focus` on the inner border.
+   * See docs/decisions.md on removing it at non-zero cost. */
+
   /* The focus indicator that actually carries SC 1.4.11. Cyan cannot: it measures
    * 1.88–2.12 on white against a 3.0 bar. A neutral ring clears it on every surface
-   * a control sits on, including the cyan fill itself. Cyan stays available as a
-   * decorative inner ring (Input), never as the sole indicator. */
+   * a control sits on, including the cyan fill itself. */
   --color-focus-strong: var(--neutral-700);
 
   /* ── Layer 2 · typography — size + line-height, headings carry weight ─────
