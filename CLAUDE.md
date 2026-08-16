@@ -168,15 +168,26 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   that is a finding to raise before proceeding. Writing a scope note and moving on
   leaves the agreement describing something other than what shipped, and the person
   who agreed to it is the last to find out.
-- **This file is updated by the work that changes it, not afterwards.** `CLAUDE.md`
-  went stale inside a single component: it described an empty `src/index.ts`, a
-  withdrawn `./styles.css` export and a lint gate still "to add" — all three already
-  untrue the moment `Button` merged, and all three found by the _next_ session
-  reading them as current. That is worse than an out-of-date `docs/` page, because
-  this is the file a cold session trusts before it has looked at anything. So the
-  entry describing a thing changes in the same PR as the thing, and "update the
-  handoff" is never a follow-up task. A handoff document that lags reality is not
-  documentation; it is fiction with authority.
+- **Every document that describes the project's _state_ is updated by the work that
+  changes it** — not afterwards, not at the start of the next session. That means
+  `CLAUDE.md`, the **README**, [docs/release-verification.md](docs/release-verification.md),
+  and any current-state section anywhere else. The entry describing a thing changes in the
+  same PR as the thing, and "update the docs" is never a follow-up task.
+
+  This has now failed three times in three sessions, which makes it a property of how this
+  work goes rather than three lapses. `CLAUDE.md` described an empty `src/index.ts` and a
+  withdrawn `./styles.css` export after `Button` merged. `release-verification.md` recorded
+  `0.0.1` and silently skipped `0.1.0`. The README announced "tokens and `Button`
+  implemented" while `0.2.0` shipped `Input`.
+
+  **The README is the one that cannot wait, and it is worth knowing why.** A stale
+  `CLAUDE.md` costs one message to correct once someone notices. A stale README is wrong
+  **on npmjs.com, publicly, until the next publish** — the same failure with a much longer
+  blast radius and an audience who cannot correct it. So its state description is verified
+  _before_ a version is published, which is now step 3 of the release process in the README
+  itself. A handoff document that lags reality is not documentation; it is fiction with
+  authority, and a package page that lags reality is fiction with a URL.
+
 - **A component is hand-tested before its PR opens.** Commit freely on the branch —
   granular history is wanted — but when the component, its tests and its stories are
   done, **stop and say it's ready**, then wait. The maintainer runs Storybook, works
