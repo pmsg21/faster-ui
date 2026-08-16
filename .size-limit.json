@@ -4,5 +4,17 @@
     "path": "dist/index.js",
     "limit": "15 kB",
     "ignore": ["react", "react-dom"]
+  },
+  {
+    "name": "Button only (ESM, tree-shaken)",
+    "path": "dist/index.js",
+    "import": "{ Button }",
+    "limit": "10 kB",
+    "ignore": ["react", "react-dom"]
+  },
+  {
+    "name": "Stylesheet",
+    "path": "dist/styles.css",
+    "limit": "8 kB"
   }
 ]

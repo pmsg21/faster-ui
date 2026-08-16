@@ -8,5 +8,11 @@
     "types": []
   },
   "include": ["src"],
-  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/*.stories.tsx", "**/*.cy.tsx"]
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.stories.tsx",
+    "**/*.cy.tsx",
+    "src/styles/contrast-contract.ts"
+  ]
 }

@@ -2,9 +2,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
+  ALLOWED_PREFIX_COLLISIONS,
   colorTokens,
   contrastRatio,
   findBrokenSharedValueClaims,
+  findCollidingTokenNames,
   findStaleReferences,
   findUnaccountedTokens,
   findViolations,
@@ -13,7 +15,10 @@ import {
 } from './contrast-contract';
 import type { ResolvedTheme } from './contrast-contract';
 
-const stylesheet = readFileSync(join(__dirname, 'index.css'), 'utf8');
+// tokens.css, not index.css: the token layers are what the contract measures, and
+// they are also exactly what ships as dist/styles.css. Parsing the development
+// entry would mean asserting against a file consumers never receive.
+const stylesheet = readFileSync(join(__dirname, 'tokens.css'), 'utf8');
 const theme = parseTheme(stylesheet);
 
 describe('WCAG maths', () => {
@@ -43,7 +48,7 @@ describe('parseTheme', () => {
       --loop-b: var(--loop-a);
     }
     @theme {
-      --color-text-primary: var(--neutral-700);
+      --color-content-primary: var(--neutral-700);
       --color-surface-raised: var(--white);
       --color-accent-solid: var(--primary-600);
       --color-wrapped: var(
@@ -54,13 +59,13 @@ describe('parseTheme', () => {
       --text-h1: 1.875rem; /* non-colour token, must be skipped */
     }
     [data-theme='dark'] {
-      --color-text-primary: var(--white);
+      --color-content-primary: var(--white);
     }
   `;
   const parsed = parseTheme(syntheticCss);
 
   it('resolves semantic tokens through the var() chain to hex', () => {
-    expect(parsed.light['text-primary']).toBe('#1f1f1f');
+    expect(parsed.light['content-primary']).toBe('#1f1f1f');
     expect(parsed.light['surface-raised']).toBe('#ffffff');
     expect(parsed.light['accent-solid']).toBe('#15c5ce');
     // A value Prettier wrapped across lines must still resolve.
@@ -68,7 +73,7 @@ describe('parseTheme', () => {
   });
 
   it('applies dark overrides and leaves un-overridden tokens at their light value', () => {
-    expect(parsed.dark['text-primary']).toBe('#ffffff');
+    expect(parsed.dark['content-primary']).toBe('#ffffff');
     expect(parsed.dark['surface-raised']).toBe('#ffffff');
   });
 
@@ -105,6 +110,10 @@ describe('the shipped stylesheet honours the contract', () => {
   it('holds every declared shared-value claim', () => {
     expect(findBrokenSharedValueClaims(theme)).toEqual([]);
   });
+
+  it('names no token after a colour-utility prefix (no stuttering utilities)', () => {
+    expect(findCollidingTokenNames(theme)).toEqual([]);
+  });
 });
 
 describe('the guards actually bite', () => {
@@ -112,30 +121,45 @@ describe('the guards actually bite', () => {
 
   it('flags a required pair that drops below its bar', () => {
     const broken = clone();
-    broken.light['text-primary'] = '#cccccc'; // pale grey on near-white surface-base
+    broken.light['content-primary'] = '#cccccc'; // pale grey on near-white surface-base
     const hit = findViolations(broken).find(
       (v) =>
-        v.foreground === 'text-primary' && v.background === 'surface-base' && v.mode === 'light'
+        v.foreground === 'content-primary' && v.background === 'surface-base' && v.mode === 'light'
     );
     expect(hit?.message).toMatch(/requires AA/);
   });
 
   it('flags a stale exemption that now passes', () => {
     const tightened = clone();
-    tightened.light['text-accent'] = '#000000'; // black clears AA on surface-base
+    tightened.light['content-accent'] = '#000000'; // black clears AA on surface-base
     const hit = findViolations(tightened).find(
-      (v) => v.foreground === 'text-accent' && v.background === 'surface-base' && v.mode === 'light'
+      (v) =>
+        v.foreground === 'content-accent' && v.background === 'surface-base' && v.mode === 'light'
     );
     expect(hit?.message).toMatch(/stale exemption/);
   });
 
   it('flags an unresolved token in a pair', () => {
     const missing = clone();
-    delete missing.dark['text-primary'];
+    delete missing.dark['content-primary'];
     const hit = findViolations(missing).find(
-      (v) => v.foreground === 'text-primary' && v.mode === 'dark'
+      (v) => v.foreground === 'content-primary' && v.mode === 'dark'
     );
     expect(hit?.message).toMatch(/unresolved token/);
+  });
+
+  it('flags a token named after a colour-utility prefix', () => {
+    const stuttering = clone();
+    // The exact mistake the first token layer shipped: this yields
+    // `text-text-primary`, while the documented `text-primary` never exists.
+    stuttering.light['text-primary'] = '#1f1f1f';
+    expect(findCollidingTokenNames(stuttering)).toContain('text-primary');
+  });
+
+  it('does not flag a prefix collision that is allowed with a reason', () => {
+    // accent-* collides with the accent-color utility, but we never author it.
+    expect(Object.keys(ALLOWED_PREFIX_COLLISIONS)).toContain('accent');
+    expect(findCollidingTokenNames(theme)).not.toContain('accent-solid');
   });
 
   it('flags an undeclared token added to the theme', () => {
@@ -148,9 +172,9 @@ describe('the guards actually bite', () => {
   it('flags a contract reference the theme no longer defines', () => {
     const shrunk = clone();
     // Both modes — colorTokens unions them, so a token surviving in either is defined.
-    delete shrunk.light['ring-focus'];
-    delete shrunk.dark['ring-focus'];
-    expect(findStaleReferences(shrunk)).toContain('ring-focus');
+    delete shrunk.light['focus'];
+    delete shrunk.dark['focus'];
+    expect(findStaleReferences(shrunk)).toContain('focus');
   });
 
   it('flags a shared-value claim that no longer holds', () => {
@@ -162,7 +186,7 @@ describe('the guards actually bite', () => {
   it('catches a token defined only in the dark block (a hole in the guard)', () => {
     const darkOnly = parseTheme(`
       :root { --danger-700: #ec2d30; }
-      @theme { --color-text-primary: #1f1f1f; }
+      @theme { --color-content-primary: #1f1f1f; }
       [data-theme='dark'] { --color-text-warning: var(--danger-700); }
     `);
     expect(colorTokens(darkOnly)).toContain('text-warning');

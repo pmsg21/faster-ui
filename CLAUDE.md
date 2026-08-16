@@ -22,7 +22,7 @@ noise.
 - _Primitives_ — raw values, no meaning. Private. In `:root` in
   `src/styles/index.css`, and **immutable across modes** (a ramp is a fact). Never
   referenced by a component.
-- _Semantic tokens_ — encode intent (`surface-base`, `text-danger`). The public
+- _Semantic tokens_ — encode intent (`surface-base`, `content-danger`). The public
   API. Declared in `@theme`. **Dark mode re-points these** in the
   `[data-theme='dark']` block — it overrides semantic tokens, never primitives (see
   [docs/decisions.md](docs/decisions.md)).
@@ -36,10 +36,68 @@ noise.
 values at build time and freezes `bg-surface-base` at its light value under
 `[data-theme='dark']`.
 
+**A variant matrix is not the whole specification.** Extraction is exhaustive **per
+component**, and it fails in two shapes — both of which report success:
+
+1. **Read the page's text nodes, not only its component sets.** Capabilities live in
+   section prose, in instance overrides, and in documentation frames carrying no
+   variant property at all. `IconButton`'s round/square `Fillet` was three section
+   descriptions and zero variant properties; the Overview page's section definitions
+   were the same shape.
+2. **A component that composes another does not inherit its specification.**
+   `IconButton` composes `Button`, so its outline colours were taken as given — and
+   they are different: the icon sets keep a neutral rim in every state and wash the
+   fill, where the labelled button turns its border cyan. **Shared implementation is
+   not shared specification.** Extract the sibling's own nodes, even when the code
+   will legitimately share a code path.
+
+Both happened on one component in one session, which is the argument for extracting
+exhaustively rather than reasoning from a sibling. It is also the same shape as the
+gate failures below: a source that looks fully read because the part that _was_ read
+is complete. Full record in [docs/decisions.md](docs/decisions.md).
+
 **Component completeness.** Not done until `X.tsx`, `X.test.tsx`, `X.cy.tsx`,
 `X.stories.tsx`, and `index.ts` all exist. Stories: one per variant and per state,
 a `Playground` with full controls, ≥1 edge case (long label/content). Tests:
 rendering, variants, interaction, keyboard, and an axe assertion.
+
+**Assert the before-state, not only the after.** Every interaction test pins the
+spy _before_ it acts, and again after **each** step:
+
+```ts
+expect(onClick).toHaveBeenCalledTimes(0);
+await user.click(button);
+expect(onClick).toHaveBeenCalledTimes(1);
+```
+
+A test that only checks the end state passes identically when the interaction
+never happened — wrong selector, element not rendered, handler never wired. That
+failure mode is invisible precisely on the tests that matter most: a
+`not.toHaveBeenCalled()` assertion is _already_ true before the test does
+anything. Same reason a multi-key sequence asserts after every key rather than
+once at the end — otherwise a green run cannot tell you which key was handled.
+
+**A failing test is evidence. Deleting it is not a fix.** The first instinct on red
+must be to find out _why_ — the test may be right and the code wrong, or the test may
+be wrong, or the **tool** may be unable to express what was asked of it. That third
+case is a finding about the tooling, and deleting the test converts it into silence.
+
+So: never remove or weaken a test to get a suite green. If one has to change, say so
+**before** doing it, and state three things — the reason, where the coverage went, and
+whether any is lost. Coverage that merely _moves_ (a keyboard assertion leaving Cypress
+for Jest, because `.type()` cannot trigger native activation) is a trade to be agreed,
+not absorbed. Coverage that is genuinely **lost** needs explicit sign-off, and gets
+recorded in known-gaps — an untested behaviour nobody wrote down is indistinguishable
+from one nobody thought of.
+
+The exception is a test that asserts something untrue. Those get replaced, not kept —
+but the replacement must be _narrower and more precise_, never merely quieter.
+
+**`userEvent.setup()` must not be called at module scope.** It binds when called,
+and at import time the test environment is not fully established, so it can bind
+to a `document` that is later replaced. Inside `beforeEach` or inside each test
+are both fine — every call returns an independent instance. Prefer per-test where
+it keeps the case readable on its own; these tests double as documentation.
 
 **Accessibility is the component's job.** Focus, semantics, ARIA, keyboard — built
 in, not deferred to docs or the consumer. The consumer supplies only what the
@@ -55,13 +113,27 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   diff can't show, and keep it to a sentence or two.
 - **No tool or AI attribution, anywhere.** No "Generated with Claude Code", no
   `Co-Authored-By` trailer, no emoji credit — in commit messages _or_ PR
-  descriptions. This repo is a deliverable an interviewer reads; the authorship
-  must read as the engineer's.
+  descriptions. Not because the tooling is hidden — this repo ships a `CLAUDE.md`
+  and the AI-assisted workflow is discussed openly — but because a commit log
+  describes _the change_, not the tools that produced it.
 - Branch names match the commit type and describe the change: `fix/`, `feat/`,
   `chore/`, `build/`, `docs/`.
 - `cva` for variants; `cn()` / `twMerge` for class composition, so a consumer's
   `className` wins. `forwardRef` on anything rendering a DOM element. Props named
   for intent (`variant="danger"`), never appearance (`variant="red"`).
+- **Identifiers say what the value is _for_.** No single letters, no abbreviations
+  that need the surrounding line to decode — `registerNumber`, not `n`;
+  `foregroundLuminance`, not `fl`. This applies to props, locals, callback
+  parameters and test fixtures alike. A name is the one piece of documentation
+  that cannot go stale, and every reader after the author pays for a short one.
+- **Type imports are their own statement, never inline.** `import type { X } from
+'y'` on its own line — not `import { type X, y } from 'y'`. A reader scanning
+  the head of a file can then tell what is erased at compile time from what is
+  real runtime weight, without parsing each specifier. Applied automatically by
+  `eslint --fix` in `pre-commit` (`consistent-type-imports`,
+  `fixStyle: 'separate-type-imports'`) — **not** a failing rule: an inline type
+  import lints clean, it just gets rewritten before it lands. That is deliberate;
+  see [docs/decisions.md](docs/decisions.md) on what earns a gate.
 - `pnpm exec`, never `pnpm dlx`; pin versions, never `@latest`.
 
 ## Working discipline
@@ -73,14 +145,40 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - **A gate that has never failed is unproven.** Prove it by provoking the failure,
   not observing the pass — an invalid commit message, a spec that should error, a
   check name that must resolve. If you can't make it fail, you don't know it works.
+- **A green gate must be proven to _run_ the thing it gates.** Passing and covering
+  are different claims, and a gate that never executes its subject reports the same
+  green as one that does. This has now bitten three times: the Cypress binary a warm
+  pnpm cache skipped, the `.storybook` files `tsc` never included, and Cypress
+  "supporting" React 19 on the strength of a spec that never mounted a component
+  (see [docs/decisions.md](docs/decisions.md)). Three is a pattern, not bad luck.
+  So when a gate is added, check what it actually executed — a spec count, an emitted
+  file, a log line — not merely that it exited zero.
+- **The plan is an agreement; diverging from it is a report, not a note.** If a plan
+  says something will be verified a particular way and it turns out it cannot be,
+  that is a finding to raise before proceeding. Writing a scope note and moving on
+  leaves the agreement describing something other than what shipped, and the person
+  who agreed to it is the last to find out.
+- **A component is hand-tested before its PR opens.** Commit freely on the branch —
+  granular history is wanted — but when the component, its tests and its stories are
+  done, **stop and say it's ready**, then wait. The maintainer runs Storybook, works
+  it by keyboard, checks both theme modes and reads the Design Fidelity story before
+  a PR exists. Everything a gate proves is _measurable_ — ratios, ΔE, computed boxes,
+  test results. None of it catches whether the thing **feels** right: whether a focus
+  ring reads at 2px offset on a cyan fill, whether a spinner is legible at `sm`,
+  whether disabled looks disabled rather than broken. That needs eyes and a keyboard,
+  and it is far cheaper before a PR than after.
 
 ## Where the detail lives
 
 - [docs/decisions.md](docs/decisions.md) — the "why" record (pnpm vs npm CLI,
   `@theme` vs `inline`, Cypress's own TS program, two `tsc -p`, `pre-push` scope).
-- `docs/patterns.md` — **after Button ships**, extracted from what we actually
-  built so Input/Dialog have a real reference. Not written yet: we have intentions,
-  not patterns.
+- [docs/patterns.md](docs/patterns.md) — the working detail extracted from what was
+  actually built: the guardrail principle, variant axes, the two-audience
+  vocabulary rule, deliberate omissions, sizing guidance, and the testing patterns
+  (Jest/Cypress split, the hover-transition false-green, real keyboard events,
+  harness sanity checks, component-scoped axe).
+- [docs/design-fidelity.md](docs/design-fidelity.md) — the seven places the shipped
+  component differs from the Figma file, each with its measured ratio and criterion.
 - [docs/tokens.md](docs/tokens.md) — the naming scheme, layer rules, and the
   primitive→semantic map (light and dark).
 - [docs/accessibility.md](docs/accessibility.md) — the contrast record: the
@@ -122,6 +220,25 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   explicitly, because a warm pnpm cache skips the postinstall that downloads it.
 - Cypress 13 warns React 19 / Vite 6 aren't officially supported (works; a Cypress
   15 bump clears it) — deferred.
+- **No visual-regression coverage — acknowledged, not built.** The contrast contract
+  catches a token change that degrades _accessibility_; nothing catches one that
+  merely makes a component **look** different. And the culprit is usually a primitive
+  three levels below the component being edited, so the diff that breaks a button is
+  rarely in the button. At three components that is eye-checkable; at thirty it is
+  not. Chromatic against the Storybook build CI already produces is the natural fit.
+  Whether it lands depends on time remaining after Dialog.
+- **The no-preflight verification covered Chromium only.** `dist/styles.css` ships
+  without Tailwind's preflight, and a consumer-shaped page confirmed the controls
+  hold their geometry, font, margins and line-height without it — but in one
+  engine. Safari and Firefox user-agent sheets differ on form-control margins, so
+  the claim is narrower than "verified in browsers". `box-border` is set explicitly
+  by the component for the same reason; the rest is still borrowed from the UA sheet.
+- **The completeness guard covers colour only.** `parseTheme` filters on
+  `--color-*`, so `--radius-*`, `--text-*` and `--shadow-*` are invisible to it: a
+  radius or type token can be added with no decision recorded and nothing goes red.
+  The colour guard is the one that protects an accessibility contract, so this is a
+  deliberate boundary rather than an oversight — but now that radius tokens exist,
+  the boundary is worth naming.
 
 ### Obligations the token layer hands to the component sessions
 
@@ -135,9 +252,9 @@ overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is impercept
   nothing else separates an elevated surface from the page.
 - **Focus-ring visibility (Input).** The brand cyan ring is below SC 1.4.11 on white
   (≤2.12:1). Input completes focus with a neutral offset/halo, not the cyan alone.
-- **Non-text border contrast (Input).** `border-subtle`/`border-default`/`border-danger`
+- **Non-text border contrast (Input).** `line-subtle`/`line-default`/`line-danger`
   are below 3:1 on white; the field must be identifiable by more than its border (label,
   fill, focus), verified in the component's own tests.
-- **Ghost/link button labels use a neutral foreground**, not `text-accent` — cyan fails
+- **Ghost/link button labels use a neutral foreground**, not `content-accent` — cyan fails
   AA on white (2.12) and on `accent-subtle` (2.02). Cyan is for links and non-text accent.
   Revisit with the component in front of us when Button is built.

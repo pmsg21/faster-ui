@@ -94,7 +94,7 @@ const CSS_VAR_REFERENCE = /^var\(\s*--([\w-]+)\s*\)$/;
 const MAX_VAR_HOPS = 10;
 
 /**
- * Parse `src/styles/index.css` into resolved `#rrggbb` values for every
+ * Parse `src/styles/tokens.css` into resolved `#rrggbb` values for every
  * `--color-*` semantic token, in both modes. Semantic tokens reference
  * primitives via `var(--x)`; this follows that chain to a concrete hex.
  */
@@ -190,50 +190,62 @@ const DISABLED_EXEMPT = 'WCAG exempts disabled controls';
 export const PAIRS: Pair[] = [
   // Body / content text — must be legible on the page and card surfaces.
   {
-    foreground: 'text-primary',
+    foreground: 'content-primary',
     background: 'surface-base',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-primary',
+    foreground: 'content-primary',
     background: 'surface-raised',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-secondary',
+    foreground: 'content-secondary',
     background: 'surface-base',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-secondary',
+    foreground: 'content-secondary',
     background: 'surface-raised',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
 
   // Ghost/link control labels use a NEUTRAL foreground, not the brand cyan:
-  // cyan-on-white (2.12) and cyan-on-subtle (2.02) both fail AA, and a label
-  // must be legible. Cyan stays reserved for hyperlink text and non-text accent
-  // (icon, border, hover fill). This pair verifies the ghost hover surface.
+  // cyan on white measures 1.88–2.80 across the interaction states, and a label
+  // must be legible. Cyan stays on the non-text affordance — the Outline border,
+  // the icon — never on the text. The accent ghost label sits at content-secondary
+  // when resting (covered by the surface-base/raised pairs above) and darkens to
+  // content-primary on hover and press, which is what these two pairs verify.
+  //
+  // Note the wash is NEUTRAL, not a brand tint: extracting the Button showed the
+  // accent ghost hover/press surfaces are surface-hover / surface-active. Only the
+  // danger tone tints its wash, which is why there is no accent-subtle token.
   {
-    foreground: 'text-primary',
-    background: 'accent-subtle',
+    foreground: 'content-primary',
+    background: 'surface-hover',
+    light: requireLevel('AA'),
+    dark: requireLevel('AA'),
+  },
+  {
+    foreground: 'content-primary',
+    background: 'surface-active',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
 
   // Disabled text — WCAG explicitly exempts disabled controls.
   {
-    foreground: 'text-disabled',
+    foreground: 'content-disabled',
     background: 'surface-raised',
     light: exemptWith(DISABLED_EXEMPT),
     dark: exemptWith(DISABLED_EXEMPT),
   },
   {
-    foreground: 'text-disabled',
+    foreground: 'content-disabled',
     background: 'surface-muted',
     light: exemptWith(DISABLED_EXEMPT),
     dark: exemptWith(DISABLED_EXEMPT),
@@ -241,19 +253,19 @@ export const PAIRS: Pair[] = [
 
   // Label on the accent (primary) fill, across button states.
   {
-    foreground: 'text-on-accent',
+    foreground: 'content-on-accent',
     background: 'accent-solid',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-on-accent',
+    foreground: 'content-on-accent',
     background: 'accent-solid-hover',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-on-accent',
+    foreground: 'content-on-accent',
     background: 'accent-solid-active',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
@@ -262,19 +274,19 @@ export const PAIRS: Pair[] = [
   // Label on the danger fill. The pressed (active) state is the one residual:
   // it clears the 3.0 non-text floor but misses 4.5 for small text.
   {
-    foreground: 'text-on-accent',
+    foreground: 'content-on-accent',
     background: 'danger-solid',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-on-accent',
+    foreground: 'content-on-accent',
     background: 'danger-solid-hover',
     light: requireLevel('AA'),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-on-accent',
+    foreground: 'content-on-accent',
     background: 'danger-solid-active',
     light: acceptBelow('AA', TRANSIENT_PRESSED),
     dark: acceptBelow('AA', TRANSIENT_PRESSED),
@@ -282,26 +294,36 @@ export const PAIRS: Pair[] = [
 
   // Brand-hue foregrounds — fail on white (accepted, mitigated), pass on dark.
   {
-    foreground: 'text-accent',
+    foreground: 'content-accent',
     background: 'surface-base',
     light: acceptBelow('AA', BRAND_FOREGROUND_ON_WHITE),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-accent',
+    foreground: 'content-accent',
     background: 'surface-raised',
     light: acceptBelow('AA', BRAND_FOREGROUND_ON_WHITE),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-danger',
+    foreground: 'content-danger',
     background: 'surface-raised',
     light: acceptBelow('AA', BRAND_FOREGROUND_ON_WHITE),
     dark: requireLevel('AA'),
   },
   {
-    foreground: 'text-danger',
+    foreground: 'content-danger',
     background: 'danger-subtle',
+    light: acceptBelow('AA', BRAND_FOREGROUND_ON_WHITE),
+    dark: requireLevel('AA'),
+  },
+  // Danger ghost, pressed. The label is pinned to content-danger (danger-700) across
+  // the interaction states rather than tracking 600/500/700, so the tone survives
+  // on a destructive control while reusing the exemption class already accepted
+  // for content-danger — one accepted exemption instead of three new ones.
+  {
+    foreground: 'content-danger',
+    background: 'danger-subtle-active',
     light: acceptBelow('AA', BRAND_FOREGROUND_ON_WHITE),
     dark: requireLevel('AA'),
   },
@@ -309,15 +331,33 @@ export const PAIRS: Pair[] = [
   // Focus indicator (SC 1.4.11, non-text 3.0) — brand cyan on white is below
   // the bar (accepted, mitigated at Input); on dark it clears it.
   {
-    foreground: 'border-focus',
+    foreground: 'line-focus',
     background: 'surface-raised',
     light: acceptBelow('UI', BRAND_FOCUS_RING),
     dark: requireLevel('UI'),
   },
   {
-    foreground: 'ring-focus',
+    foreground: 'focus',
     background: 'surface-raised',
     light: acceptBelow('UI', BRAND_FOCUS_RING),
+    dark: requireLevel('UI'),
+  },
+
+  // The focus indicator that actually carries SC 1.4.11. Unlike the cyan ring
+  // above, this one is REQUIRED to clear the bar in both modes — it is the
+  // indicator of record, and a control's focus state cannot rest on an exemption.
+  // Measured against both surfaces a focused control sits on, because the ring is
+  // drawn outside the control (2px offset), on the page rather than on the fill.
+  {
+    foreground: 'focus-strong',
+    background: 'surface-base',
+    light: requireLevel('UI'),
+    dark: requireLevel('UI'),
+  },
+  {
+    foreground: 'focus-strong',
+    background: 'surface-raised',
+    light: requireLevel('UI'),
     dark: requireLevel('UI'),
   },
 ];
@@ -329,16 +369,15 @@ export const PAIRS: Pair[] = [
  */
 export const IGNORED: Record<string, string> = {
   'surface-sunken':
-    'recessed fill; only ever seats text-primary, which clears contrast on it by a wide margin',
-  'surface-hover': 'transient hover fill; the text on it is unchanged from its resting surface',
-  'surface-muted': 'covered as a surface in the text-disabled pairs',
-  'accent-solid-disabled': 'disabled fill; any label on it is text-disabled, which WCAG exempts',
-  'danger-solid-disabled': 'disabled fill; any label on it is text-disabled, which WCAG exempts',
-  'border-subtle':
+    'recessed fill; only ever seats content-primary, which clears contrast on it by a wide margin',
+  'surface-muted': 'covered as a surface in the content-disabled pairs',
+  'accent-solid-disabled': 'disabled fill; any label on it is content-disabled, which WCAG exempts',
+  'danger-solid-disabled': 'disabled fill; any label on it is content-disabled, which WCAG exempts',
+  'line-subtle':
     'field/divider border; non-text contrast is verified at component level (1.4.11 nuance)',
-  'border-default': 'field border; non-text contrast is verified at component level',
-  'border-disabled': 'disabled field border; WCAG exempts disabled controls',
-  'border-danger': 'invalid-field border; non-text contrast is verified at component level',
+  'line-default': 'field border; non-text contrast is verified at component level',
+  'line-disabled': 'disabled field border; WCAG exempts disabled controls',
+  'line-danger': 'invalid-field border; non-text contrast is verified at component level',
 };
 
 /**
@@ -417,6 +456,59 @@ function accountedTokens(): Set<string> {
     accounted.add(pair.background);
   }
   return accounted;
+}
+
+/**
+ * Tailwind utility prefixes that read from the `--color-*` namespace.
+ *
+ * A colour token whose NAME begins with one of these produces a stuttering
+ * utility, because the utility prefix composes on top of the token name rather
+ * than replacing it: `--color-text-primary` yields `text-text-primary`, and
+ * `text-primary` simply does not exist. This is not hypothetical — the first
+ * version of this token layer shipped `text-*`, `border-*` and `ring-focus*`
+ * names, and `docs/tokens.md` documented utilities that were never generated.
+ * Nothing caught it, because no component had consumed a token yet.
+ */
+const COLOR_UTILITY_PREFIXES = [
+  'accent',
+  'bg',
+  'border',
+  'caret',
+  'decoration',
+  'divide',
+  'fill',
+  'from',
+  'outline',
+  'placeholder',
+  'ring',
+  'shadow',
+  'stroke',
+  'text',
+  'to',
+  'via',
+] as const;
+
+/**
+ * Prefixes we knowingly collide with, because we never author the utility that
+ * would stutter. Same shape as `IGNORED`: an exception must carry a reason.
+ */
+export const ALLOWED_PREFIX_COLLISIONS: Record<string, string> = {
+  accent:
+    'the accent-color utility (native form-control tint) is never authored here; accent-* tokens are consumed as bg-accent-solid / border-accent-solid, which do not stutter',
+};
+
+/**
+ * Colour tokens whose name starts with a colour-utility prefix, so the utility
+ * they generate stutters. Cheap to check and easy to reintroduce by accident.
+ */
+export function findCollidingTokenNames(theme: ResolvedTheme): string[] {
+  return colorTokens(theme)
+    .filter((token) =>
+      COLOR_UTILITY_PREFIXES.some(
+        (prefix) => token.startsWith(`${prefix}-`) && !(prefix in ALLOWED_PREFIX_COLLISIONS)
+      )
+    )
+    .sort();
 }
 
 /** Colour tokens present in the theme but neither paired nor ignored. */

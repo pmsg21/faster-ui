@@ -7,6 +7,16 @@ settings:
 importers:
 
   .:
+    dependencies:
+      class-variance-authority:
+        specifier: 0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: 2.1.1
+        version: 2.1.1
+      tailwind-merge:
+        specifier: 3.6.0
+        version: 3.6.0
     devDependencies:
       '@changesets/cli':
         specifier: ^2.27.0
@@ -37,16 +47,22 @@ importers:
         version: 8.6.14(storybook@8.6.18(prettier@3.4.2))
       '@storybook/react':
         specifier: ^8.4.0
-        version: 8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)
+        version: 8.6.18(@storybook/test@8.6.14(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)
       '@storybook/react-vite':
         specifier: ^8.4.0
-        version: 8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rollup@4.62.4)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))
+        version: 8.6.18(@storybook/test@8.6.14(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rollup@4.62.4)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))
+      '@storybook/test':
+        specifier: 8.6.14
+        version: 8.6.14(storybook@8.6.18(prettier@3.4.2))
       '@swc/core':
         specifier: ^1.10.0
         version: 1.15.47
       '@swc/jest':
         specifier: ^0.2.37
         version: 0.2.39(@swc/core@1.15.47)
+      '@tailwindcss/cli':
+        specifier: 4.3.3
+        version: 4.3.3
       '@tailwindcss/vite':
         specifier: ^4.0.0
         version: 4.3.3(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))
@@ -80,12 +96,18 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.0
         version: 4.7.0(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))
+      axe-core:
+        specifier: 4.9.1
+        version: 4.9.1
       cypress:
         specifier: ^13.17.0
         version: 13.17.0
       cypress-axe:
         specifier: ^1.6.0
-        version: 1.7.0(axe-core@4.13.0)(cypress@13.17.0)
+        version: 1.7.0(axe-core@4.9.1)(cypress@13.17.0)
+      cypress-real-events:
+        specifier: 1.15.0
+        version: 1.15.0(cypress@13.17.0)
       eslint:
         specifier: ^9.17.0
         version: 9.39.5(jiti@2.7.0)
@@ -1036,6 +1058,88 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
+  '@parcel/watcher-android-arm64@2.5.1':
+    resolution: {integrity: sha512-KF8+j9nNbUN8vzOFDpRMsaKBHZ/mcjEjMToVMJOhTozkDonQFFrRcfdLWn6yWKCmJKmdVxSgHiYvTCef4/qcBA==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [arm64]
+    os: [android]
+
+  '@parcel/watcher-darwin-arm64@2.5.1':
+    resolution: {integrity: sha512-eAzPv5osDmZyBhou8PoF4i6RQXAfeKL9tjb3QzYuccXFMQU0ruIc/POh30ePnaOyD1UXdlKguHBmsTs53tVoPw==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@parcel/watcher-darwin-x64@2.5.1':
+    resolution: {integrity: sha512-1ZXDthrnNmwv10A0/3AJNZ9JGlzrF82i3gNQcWOzd7nJ8aj+ILyW1MTxVk35Db0u91oD5Nlk9MBiujMlwmeXZg==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@parcel/watcher-freebsd-x64@2.5.1':
+    resolution: {integrity: sha512-SI4eljM7Flp9yPuKi8W0ird8TI/JK6CSxju3NojVI6BjHsTyK7zxA9urjVjEKJ5MBYC+bLmMcbAWlZ+rFkLpJQ==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [x64]
+    os: [freebsd]
+
+  '@parcel/watcher-linux-arm-glibc@2.5.1':
+    resolution: {integrity: sha512-RCdZlEyTs8geyBkkcnPWvtXLY44BCeZKmGYRtSgtwwnHR4dxfHRG3gR99XdMEdQ7KeiDdasJwwvNSF5jKtDwdA==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [arm]
+    os: [linux]
+
+  '@parcel/watcher-linux-arm-musl@2.5.1':
+    resolution: {integrity: sha512-6E+m/Mm1t1yhB8X412stiKFG3XykmgdIOqhjWj+VL8oHkKABfu/gjFj8DvLrYVHSBNC+/u5PeNrujiSQ1zwd1Q==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [arm]
+    os: [linux]
+
+  '@parcel/watcher-linux-arm64-glibc@2.5.1':
+    resolution: {integrity: sha512-LrGp+f02yU3BN9A+DGuY3v3bmnFUggAITBGriZHUREfNEzZh/GO06FF5u2kx8x+GBEUYfyTGamol4j3m9ANe8w==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@parcel/watcher-linux-arm64-musl@2.5.1':
+    resolution: {integrity: sha512-cFOjABi92pMYRXS7AcQv9/M1YuKRw8SZniCDw0ssQb/noPkRzA+HBDkwmyOJYp5wXcsTrhxO0zq1U11cK9jsFg==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@parcel/watcher-linux-x64-glibc@2.5.1':
+    resolution: {integrity: sha512-GcESn8NZySmfwlTsIur+49yDqSny2IhPeZfXunQi48DMugKeZ7uy1FX83pO0X22sHntJ4Ub+9k34XQCX+oHt2A==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [x64]
+    os: [linux]
+
+  '@parcel/watcher-linux-x64-musl@2.5.1':
+    resolution: {integrity: sha512-n0E2EQbatQ3bXhcH2D1XIAANAcTZkQICBPVaxMeaCVBtOpBZpWJuf7LwyWPSBDITb7In8mqQgJ7gH8CILCURXg==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [x64]
+    os: [linux]
+
+  '@parcel/watcher-win32-arm64@2.5.1':
+    resolution: {integrity: sha512-RFzklRvmc3PkjKjry3hLF9wD7ppR4AKcWNzH7kXR7GUe0Igb3Nz8fyPwtZCSquGrhU5HhUNDr/mKBqj7tqA2Vw==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@parcel/watcher-win32-ia32@2.5.1':
+    resolution: {integrity: sha512-c2KkcVN+NJmuA7CGlaGD1qJh1cLfDnQsHjE89E60vUEMlqduHGCdCLJCID5geFVM0dOtA3ZiIO8BoEQmzQVfpQ==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [ia32]
+    os: [win32]
+
+  '@parcel/watcher-win32-x64@2.5.1':
+    resolution: {integrity: sha512-9lHBdJITeNR++EvSQVUcaZoWupyHfXe1jZvGZ06O/5MflPcuPLtEphScIBL+AiCWBO46tDSHzWyD0uDmmZqsgA==}
+    engines: {node: '>= 10.0.0'}
+    cpu: [x64]
+    os: [win32]
+
+  '@parcel/watcher@2.5.1':
+    resolution: {integrity: sha512-dfUnCxiN9H4ap84DvD2ubjw+3vUNpstxa0TneY/Paat8a3R4uQZDLSvWjmznAY/DoahqTHl9V46HF/Zs3F29pg==}
+    engines: {node: '>= 10.0.0'}
+
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
@@ -1528,6 +1632,10 @@ packages:
 
   '@swc/types@0.1.28':
     resolution: {integrity: sha512-V6Mnml8v09QALx6K0elJ7o9K/MkVDtW3t6L+7Ou/JcWtb3xwId2AH4FeOceySd2JaO87IMw4+6vSZxLm34LPbw==}
+
+  '@tailwindcss/cli@4.3.3':
+    resolution: {integrity: sha512-ZvS/n1ZHOBKcVlhkt8l5NNr1EDXk1NboYO5CYDOs6NUmvT9z6bzkwsosaJftY57T/3gWNzWMJzIXLodZC8ssdw==}
+    hasBin: true
 
   '@tailwindcss/node@4.3.3':
     resolution: {integrity: sha512-/T8IKEsf9VTU6tLjgC7+sv2mOPtQxzE2jMw7u4Tt40Tx+QSZxpzh95/H6cMKoja9XuW7iMdLJYBB0o9G1CaAgg==}
@@ -2263,6 +2371,9 @@ packages:
   cjs-module-lexer@1.4.3:
     resolution: {integrity: sha512-9z8TZaGM1pfswYeXrUpzPrkx8UnWYdhJclsiYMm6x/w5+nN+8Tf/LnAgfLGQCm59qAOxU8WwHEq2vNwF6i4j+Q==}
 
+  class-variance-authority@0.7.1:
+    resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
+
   clean-stack@2.2.0:
     resolution: {integrity: sha512-4diC9HaTE+KRAMWhDhrGOECgWZxoevMc5TlkObMqNSsVU62PYzXZ/SMTjzyGAFF1YusgxGcSWTEXBhp0CPwQ1A==}
     engines: {node: '>=6'}
@@ -2290,6 +2401,10 @@ packages:
   cliui@8.0.1:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
+
+  clsx@2.1.1:
+    resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
+    engines: {node: '>=6'}
 
   co@4.6.0:
     resolution: {integrity: sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==}
@@ -2412,6 +2527,11 @@ packages:
       axe-core: ^3 || ^4
       cypress: ^10 || ^11 || ^12 || ^13 || ^14 || ^15
 
+  cypress-real-events@1.15.0:
+    resolution: {integrity: sha512-in98xxTnnM9Z7lZBvvVozm99PBT2eEOjXRG5LKWyYvQnj9mGWXMiPNpfw7e7WiraBFh7XlXIxnE9Cu5o+52kQQ==}
+    peerDependencies:
+      cypress: ^4.x || ^5.x || ^6.x || ^7.x || ^8.x || ^9.x || ^10.x || ^11.x || ^12.x || ^13.x || ^14.x || ^15.x
+
   cypress@13.17.0:
     resolution: {integrity: sha512-5xWkaPurwkIljojFidhw8lFScyxhtiFHl/i/3zov+1Z5CmY4t9tjIdvSXfu82Y3w7wt0uR9KkucbhkVvJZLQSA==}
     engines: {node: ^16.0.0 || ^18.0.0 || >=20.0.0}
@@ -2512,6 +2632,11 @@ packages:
   detect-indent@6.1.0:
     resolution: {integrity: sha512-reYkTUJAZb9gUuZ2RvVCNhVHdg62RHnJ7WJl8ftMi4diZ6NWlciOzQN88pUhSELEwflJht4oQDv0F0BMlwaYtA==}
     engines: {node: '>=8'}
+
+  detect-libc@1.0.3:
+    resolution: {integrity: sha512-pGjwhsmsp4kL2RTz08wcOlGN83otlqHeD/Z5T8GXZB+/YcpQ/dgo+lbU8ZsGxV0HIvqqxo9l7mqYwyYMD9bKDg==}
+    engines: {node: '>=0.10'}
+    hasBin: true
 
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
@@ -3951,6 +4076,9 @@ packages:
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
+  node-addon-api@7.1.1:
+    resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
+
   node-exports-info@1.6.2:
     resolution: {integrity: sha512-kXs9Go0cah0qHVV2v389IXQLdLCeE1xfFtjOAF+iobu0OIoG1pje8At2vMHyaPMiPMnG/LWP50twML21eMcAag==}
     engines: {node: '>= 0.4'}
@@ -4701,6 +4829,9 @@ packages:
     resolution: {integrity: sha512-KpzUHkH1ug1sq4394SLJX38ZtpeTiqQ1RVyFTTSY2XuHsNSTWUkRo108KmyyrMWdDbQrLYkSHaNKj/a3bmA4sQ==}
     peerDependencies:
       tailwindcss: ^3.3.0 || ^4.0.0 || ^4.0.0-beta
+
+  tailwind-merge@3.6.0:
+    resolution: {integrity: sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w==}
 
   tailwindcss@4.3.3:
     resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
@@ -6123,6 +6254,66 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
 
+  '@parcel/watcher-android-arm64@2.5.1':
+    optional: true
+
+  '@parcel/watcher-darwin-arm64@2.5.1':
+    optional: true
+
+  '@parcel/watcher-darwin-x64@2.5.1':
+    optional: true
+
+  '@parcel/watcher-freebsd-x64@2.5.1':
+    optional: true
+
+  '@parcel/watcher-linux-arm-glibc@2.5.1':
+    optional: true
+
+  '@parcel/watcher-linux-arm-musl@2.5.1':
+    optional: true
+
+  '@parcel/watcher-linux-arm64-glibc@2.5.1':
+    optional: true
+
+  '@parcel/watcher-linux-arm64-musl@2.5.1':
+    optional: true
+
+  '@parcel/watcher-linux-x64-glibc@2.5.1':
+    optional: true
+
+  '@parcel/watcher-linux-x64-musl@2.5.1':
+    optional: true
+
+  '@parcel/watcher-win32-arm64@2.5.1':
+    optional: true
+
+  '@parcel/watcher-win32-ia32@2.5.1':
+    optional: true
+
+  '@parcel/watcher-win32-x64@2.5.1':
+    optional: true
+
+  '@parcel/watcher@2.5.1':
+    dependencies:
+      detect-libc: 1.0.3
+      is-glob: 4.0.3
+      micromatch: 4.0.8
+      node-addon-api: 7.1.1
+    optionalDependencies:
+      '@parcel/watcher-android-arm64': 2.5.1
+      '@parcel/watcher-darwin-arm64': 2.5.1
+      '@parcel/watcher-darwin-x64': 2.5.1
+      '@parcel/watcher-freebsd-x64': 2.5.1
+      '@parcel/watcher-linux-arm-glibc': 2.5.1
+      '@parcel/watcher-linux-arm-musl': 2.5.1
+      '@parcel/watcher-linux-arm64-glibc': 2.5.1
+      '@parcel/watcher-linux-arm64-musl': 2.5.1
+      '@parcel/watcher-linux-x64-glibc': 2.5.1
+      '@parcel/watcher-linux-x64-musl': 2.5.1
+      '@parcel/watcher-win32-arm64': 2.5.1
+      '@parcel/watcher-win32-ia32': 2.5.1
+      '@parcel/watcher-win32-x64': 2.5.1
+
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
@@ -6475,12 +6666,12 @@ snapshots:
       react-dom: 19.2.8(react@19.2.8)
       storybook: 8.6.18(prettier@3.4.2)
 
-  '@storybook/react-vite@8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rollup@4.62.4)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))':
+  '@storybook/react-vite@8.6.18(@storybook/test@8.6.14(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rollup@4.62.4)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))':
     dependencies:
       '@joshwooding/vite-plugin-react-docgen-typescript': 0.5.0(typescript@5.9.3)(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))
       '@rollup/pluginutils': 5.4.0(rollup@4.62.4)
       '@storybook/builder-vite': 8.6.18(storybook@8.6.18(prettier@3.4.2))(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))
-      '@storybook/react': 8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)
+      '@storybook/react': 8.6.18(@storybook/test@8.6.14(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)
       find-up: 5.0.0
       magic-string: 0.30.21
       react: 19.2.8
@@ -6491,13 +6682,13 @@ snapshots:
       tsconfig-paths: 4.2.0
       vite: 6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0)
     optionalDependencies:
-      '@storybook/test': 8.6.18(storybook@8.6.18(prettier@3.4.2))
+      '@storybook/test': 8.6.14(storybook@8.6.18(prettier@3.4.2))
     transitivePeerDependencies:
       - rollup
       - supports-color
       - typescript
 
-  '@storybook/react@8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)':
+  '@storybook/react@8.6.18(@storybook/test@8.6.14(storybook@8.6.18(prettier@3.4.2)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(storybook@8.6.18(prettier@3.4.2))(typescript@5.9.3)':
     dependencies:
       '@storybook/components': 8.6.18(storybook@8.6.18(prettier@3.4.2))
       '@storybook/global': 5.0.0
@@ -6509,7 +6700,7 @@ snapshots:
       react-dom: 19.2.8(react@19.2.8)
       storybook: 8.6.18(prettier@3.4.2)
     optionalDependencies:
-      '@storybook/test': 8.6.18(storybook@8.6.18(prettier@3.4.2))
+      '@storybook/test': 8.6.14(storybook@8.6.18(prettier@3.4.2))
       typescript: 5.9.3
 
   '@storybook/test@8.6.14(storybook@8.6.18(prettier@3.4.2))':
@@ -6604,6 +6795,16 @@ snapshots:
   '@swc/types@0.1.28':
     dependencies:
       '@swc/counter': 0.1.3
+
+  '@tailwindcss/cli@4.3.3':
+    dependencies:
+      '@parcel/watcher': 2.5.1
+      '@tailwindcss/node': 4.3.3
+      '@tailwindcss/oxide': 4.3.3
+      enhanced-resolve: 5.24.5
+      mri: 1.2.0
+      picocolors: 1.1.1
+      tailwindcss: 4.3.3
 
   '@tailwindcss/node@4.3.3':
     dependencies:
@@ -7415,6 +7616,10 @@ snapshots:
 
   cjs-module-lexer@1.4.3: {}
 
+  class-variance-authority@0.7.1:
+    dependencies:
+      clsx: 2.1.1
+
   clean-stack@2.2.0: {}
 
   cli-cursor@3.1.0:
@@ -7446,6 +7651,8 @@ snapshots:
       string-width: 4.2.3
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
+
+  clsx@2.1.1: {}
 
   co@4.6.0: {}
 
@@ -7552,9 +7759,13 @@ snapshots:
 
   csstype@3.2.3: {}
 
-  cypress-axe@1.7.0(axe-core@4.13.0)(cypress@13.17.0):
+  cypress-axe@1.7.0(axe-core@4.9.1)(cypress@13.17.0):
     dependencies:
-      axe-core: 4.13.0
+      axe-core: 4.9.1
+      cypress: 13.17.0
+
+  cypress-real-events@1.15.0(cypress@13.17.0):
+    dependencies:
       cypress: 13.17.0
 
   cypress@13.17.0:
@@ -7680,6 +7891,8 @@ snapshots:
   dequal@2.0.3: {}
 
   detect-indent@6.1.0: {}
+
+  detect-libc@1.0.3: {}
 
   detect-libc@2.1.2: {}
 
@@ -9473,6 +9686,8 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
+  node-addon-api@7.1.1: {}
+
   node-exports-info@1.6.2:
     dependencies:
       array.prototype.flatmap: 1.3.3
@@ -10238,6 +10453,8 @@ snapshots:
       jiti: 2.7.0
       local-pkg: 1.2.1
       tailwindcss: 4.3.3
+
+  tailwind-merge@3.6.0: {}
 
   tailwindcss@4.3.3: {}
 

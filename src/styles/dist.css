@@ -1,0 +1,27 @@
+/**
+ * The published stylesheet — this file is what becomes `dist/styles.css`.
+ *
+ * DELIBERATELY NO PREFLIGHT. Tailwind's `@import 'tailwindcss'` would also pull in
+ * `preflight`, a reset that restyles the whole document: headings, lists, forms,
+ * margins. Preflight is an opinion about the document, and the document is not ours.
+ * Installing three components must not restyle a consumer's site — that is the CSS
+ * equivalent of exporting primitives, reaching past our own boundary. So the theme
+ * and utilities layers are imported on their own.
+ *
+ * Because there is no reset underneath, the components have to set what they depend
+ * on rather than inherit it. See docs/decisions.md.
+ *
+ * The scan target is `dist/index.js` — the built bundle, not `src`. That is exactly
+ * the set of classes the shipped components use, so stories and test fixtures cannot
+ * leak utilities into a consumer's CSS. It also means this file compiles the artifact
+ * we actually publish rather than a proxy for it.
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@source '../../dist/index.js';
+
+@import './tokens.css';
