@@ -52,9 +52,38 @@ be careful about. On shape one, mis-transcribing a cell ships a wrong colour. On
 two, the equivalent mistake ships a control that a screen reader cannot describe — and no
 amount of matrix-checking would have caught it.
 
-`Dialog` is the third and looks like shape two again: focus trapping, restoration,
-`aria-modal`, escape handling and scroll locking are all behaviour, and its visual
-specification is close to one surface with one border.
+**Shape three: the specification is mostly the platform's.** `Dialog` — and the
+prediction this paragraph used to make was wrong, which is why it is worth correcting
+rather than quietly rewriting. It said Dialog "looks like shape two again: focus
+trapping, restoration, `aria-modal`, escape handling and scroll locking are all
+behaviour."
+
+Every item on that list is real, and we wrote almost none of it. `showModal()` supplies
+the focus trap, the focus restoration, Escape, the top layer and background inertness;
+`aria-modal` turned out to be something you should _not_ write, because the browser
+conveys modality natively and asserting it by hand is how the two get to disagree. What
+we actually wrote was the initial-focus resolver, the scroll lock and the dismissal
+rules — perhaps a fifth of what shape two would have implied.
+
+So the hard part is not writing behaviour. It is **choosing the substrate, and then
+proving the substrate is really doing it.** That inverts where the risk lives:
+
+| Shape                                | Where the work is                              | What a mistake ships                                   |
+| ------------------------------------ | ---------------------------------------------- | ------------------------------------------------------ |
+| One — class matrix (`Button`)        | transcribing cells                             | a wrong colour                                         |
+| Two — behaviour (`Input`)            | wiring, focus, derived state                   | a control a screen reader cannot describe              |
+| Three — platform contract (`Dialog`) | choosing what _not_ to write, and verifying it | a component that looks correct and is not modal at all |
+
+The third failure is the dangerous one, because nothing in the code looks wrong. A
+`<dialog open>` renders identically to a `showModal()`'d one; it simply is not modal.
+That is why this shape needs a harness that can tell the difference — see
+[A measurement harness needs its own sanity check](#a-measurement-harness-needs-its-own-sanity-check),
+which Dialog extended twice in one session.
+
+The tell for shape three is a component whose accessibility requirements read like a
+list of things browsers already do. When that happens, the question is not "how do I
+implement these?" but "which of these does the platform give me, and how would I know if
+it stopped?"
 
 ## How many variant axes: as many as the source has, and no more
 
@@ -266,6 +295,78 @@ stylesheet — a serious defect, nearly reported as one. Reading in a separate c
 the re-map working. The custom property had already flipped while the resolved
 `background-color` had not, and that split is the diagnostic: when a token changes but
 the property using it does not, suspect the read before the CSS.
+
+**When the subject can be stubbed, the harness must assert it is not.** jsdom has no
+`<dialog>` modal behaviour, so `jest.setup.ts` shims `showModal`. In Jest, then, a modal
+dialog and a plain `<dialog open>` are indistinguishable — and if that shim ever reached
+the browser suite, every modality assertion would keep passing while proving nothing.
+So `Dialog.cy.tsx` opens by asserting `HTMLDialogElement.prototype.showModal` is native,
+and separately that the element matches `:modal`, which only a `showModal()`'d dialog
+does.
+
+### Provoke the gate, then read the survivors
+
+The working agreement already says a gate that has never failed is unproven. This is the
+second half of that procedure, and it is the more valuable half because it finds problems
+you were not looking for.
+
+**Step one — break the subject and confirm the gate goes red.** This tells you the gate
+works. It is the step everyone remembers.
+
+**Step two — with the subject still broken, read the list of tests that _passed_.** Every
+test that stayed green while its subject was deliberately broken was measuring something
+adjacent to the thing it claims to measure. This is the step that finds hollow tests, and
+there is no other way to find them: they are green in normal runs by definition, and they
+read correctly, because a test that _looks_ wrong would have been fixed already.
+
+Only then revert.
+
+The worked example. Installing the Jest shim in the browser environment turned the sanity
+check red as designed — and **17 of 27 specs still passed.** One was an inertness test. It
+asserted that a point over a background button hit the scrim instead, which is equally
+true of a non-modal dialog whose scrim happens to cover the page: it was measuring
+z-order and reporting inertness. Rewritten to ask the background element to _take focus_ —
+something merely covering it cannot fake, because only a genuinely inert document refuses
+focus — it now fails against the shim as it should.
+
+Step two generalises past this repository, and past testing. It is the same question as
+"what did this experiment fail to control for", asked in the one direction where the
+answer is cheap to obtain: you already have a broken system in front of you, and anything
+still reporting success is telling you what it is not connected to.
+
+### The failure provocation cannot find: a correct test of a wrong specification
+
+Everything above is about tests that fail to reach their subject. `Dialog` produced the
+other kind, and it is worth separating because **the remedy is different**.
+
+Its initial-focus resolver was specified to skip the close control and, if nothing else
+could take focus, fall back to the dialog container. Two tests asserted exactly that, one
+per runner. Both passed. The resolver ran, reached its subject, and was measured
+correctly — and the behaviour was wrong.
+
+It was wrong for two reasons nobody had written down:
+
+- **A container draws no focus ring.** A screen-reader user heard the title; a sighted
+  keyboard user saw nothing focused at all, with no indication of where they were.
+- **The skip rule's premise did not hold.** The close control is skipped because landing
+  there tells a keyboard user how to leave rather than what to decide — but when
+  dismissal is the _only_ action, leaving **is** the decision, and skipping it removes the
+  one thing the dialog is for.
+
+Provocation cannot find this. Break the subject and the test goes red exactly as it
+should; the test is faithful. Nor can review, because the code matches the specification —
+the specification is the defect, and it reads perfectly well until someone uses it.
+
+**What found it was a person opening the component and pressing Tab.** That is the fourth
+defect the hand-test rule has caught (see
+[accessibility.md](accessibility.md#verified-by-hand-because-no-gate-can)), and the
+sharpest argument for it so far, because the three before it were absences — a missing
+capability, an inherited-but-wrong interaction model, a violation nobody had read. This
+one was present, deliberate, tested, and wrong.
+
+The general form, and the boundary of everything else in this section: **a test suite can
+only be as correct as the specification it encodes.** Provoking a gate proves the test
+measures the code. Nothing in a test suite can prove the code should behave that way.
 
 ### Real keyboard needs real events
 

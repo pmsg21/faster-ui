@@ -124,13 +124,20 @@ system tooling`). **Default to no body at all.** Never narrate the diff
 - `cva` for variants; `cn()` / `twMerge` for class composition, so a consumer's
   `className` wins. `forwardRef` on anything rendering a DOM element. Props named
   for intent (`variant="danger"`), never appearance (`variant="red"`).
-- **Every component is `export const X = /* @__PURE__ */ forwardRef(…)`.** Without the
-  annotation the component does not tree-shake — a call expression at module scope cannot
-  be proven side-effect-free, so importing _any_ component drags in _all_ of them. This
-  was measured, not theorised: before the fix a single-component import cost within 200
-  bytes of the entire library. `sideEffects` in `package.json` does not cover it, because
-  that governs whole modules and the published bundle is one flat file. See
+- **No unannotated call expression at module scope.** Every component is
+  `export const X = /* @__PURE__ */ forwardRef(…)` — and so is **every `cva(…)`**, for
+  exactly the same reason: a bundler cannot prove a call is side-effect-free, so it keeps
+  the binding and everything it references. `sideEffects` in `package.json` does not cover
+  it, because that governs whole modules and the published bundle is one flat file.
+
+  This bullet used to name only `forwardRef`, and that was too narrow — `buttonVariants`
+  and `inputVariants` had been leaking since they shipped. Measured when `Dialog` landed:
+  a `{ Button }`-only import grew **440 bytes** the moment Dialog joined the barrel,
+  despite Dialog importing nothing from it; annotating the `cva` calls took Button-only to
+  **9.49 kB**, below its own long-standing baseline. Watch for the quieter form too —
+  `[ … ].join(',')` is a call, and cost 100 bytes of retained module. See
   [docs/decisions.md](docs/decisions.md).
+
 - **Identifiers say what the value is _for_.** No single letters, no abbreviations
   that need the surrounding line to decode — `registerNumber`, not `n`;
   `foregroundLuminance`, not `fl`. This applies to props, locals, callback
@@ -269,14 +276,25 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   deliberately not shipped — recorded in [docs/decisions.md](docs/decisions.md) so the
   omission reads as a decision, not a gap. Three new fidelity rows (8–10), taking the
   register to ten.
-- **Tree-shaking was broken and is now fixed.** Every component is annotated
-  `/* @__PURE__ */ forwardRef(…)`. Without it a call expression at module scope cannot be
-  proven side-effect-free, so **every** component was retained in **every** import — a
-  single-component import cost within 200 bytes of the whole library. Caught by the
-  `size-limit` budget when `Input` landed, not by review. Any new component must carry the
-  annotation or it silently reintroduces the defect.
-- **Next — `Dialog`.** Its obligation is already recorded below: in dark mode elevation is
-  a border, not a shadow.
+- **Tree-shaking was broken, fixed, and then found to be still half-broken.** The first
+  fix annotated `forwardRef(…)`; `Dialog` showed that `cva(…)` needed it too, and that
+  `buttonVariants` / `inputVariants` had been leaking since they shipped. Both rounds were
+  caught by the `size-limit` budget and neither by review. Current: full library
+  **11.78 kB** brotli, `{ Button }` **9.53 kB**, `{ Dialog }` **10.07 kB**, stylesheet
+  **5.73 kB**. A 40-byte residual on Button-only is measured but unattributed — recorded
+  rather than rounded away, since the original defect hid behind "140 bytes is noise". Any new component must annotate _every_ module-scope call or it silently
+  reintroduces the defect.
+- **Done — `Dialog` (on `feat/dialog`, not yet released).** Built on the native
+  `<dialog>` + `showModal()`, so focus trapping, focus restoration, Escape, top-layer
+  stacking and background inertness come from the platform; a headless dependency would
+  have roughly tripled the package. Four Figma frames reduce to **one presentation axis**
+  (`size`, which changes the **width only** — 400/600/900), one semantic axis (`tone`,
+  where `warning` means `role="alertdialog"`), and one boolean (`dividers`, which
+  re-spaces the dialog rather than adding rules). `Scrollable` is **not API at all**: its
+  own prose is conditional, so it is a `max-height` plus `overflow-y: auto`. The scrim is
+  a real element inside a transparent full-viewport shell rather than `::backdrop`, which
+  is two years younger than `showModal()`. **Zero new fidelity rows** (7 / 0 / 3 / 0).
+  The dark-elevation obligation is discharged and now machine-enforced.
 
 ## Known gaps / state to remember
 
@@ -291,6 +309,53 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   explicitly, because a warm pnpm cache skips the postinstall that downloads it.
 - Cypress 13 warns React 19 / Vite 6 aren't officially supported (works; a Cypress
   15 bump clears it) — deferred.
+- **jsdom cannot see anything modal about `Dialog`, and `jest.setup.ts` shims around it.**
+  `jest-environment-jsdom@29` resolves **jsdom 20.0.3**, where `showModal`/`close` are
+  `undefined`. The shim toggles `open` and dispatches `close` — enough to mount, nothing
+  more. State the gap as what is _not_ proven rather than as where coverage went:
+  **jsdom cannot distinguish `showModal()` from `<dialog open>`, so Jest asserts nothing
+  about modality, background inertness, Escape, focus movement, focus restoration or
+  `::backdrop`.** Those live in `Dialog.cy.tsx`, which opens by asserting `showModal` is
+  native and that the element matches `:modal` — a check proven by installing the shim in
+  the browser and watching it go red.
+
+  Worth recording as a **fourth instance of the state-describing rule, this time in code
+  rather than in Markdown**: the shim was committed by an earlier session and documented
+  nowhere, so a passing Jest suite read as covering modality. The previous three lapses
+  were all documents, which is presumably why nobody thought to look in `jest.setup.ts`.
+
+- **The package's browser floor is Chrome 105 / Safari 15.4 / Firefox 121, and it is not
+  set by `Dialog`.** `:has()` in `Input`'s focused field binds hardest (Firefox 121,
+  Dec 2023); `:focus-visible` set Safari 15.4 back in `Button`; `showModal()` (Firefox 98)
+  is the **least** binding of the three. A modal did not raise the floor — it prompted the
+  first measurement of one that had existed unrecorded since `Input`.
+
+  Separately, Tailwind v4 emits 59 `@property` rules (Safari 16.4 / Firefox 128) with an
+  `@supports` fallback declaring the same variables, so that one degrades rather than
+  breaks. It is a **build-tool** floor: invisible in every component's source, chosen by
+  nobody here, and impossible to find by reading the code. Re-measure from
+  `dist/styles.css` when Tailwind majors change.
+
+  Recorded as the **fifth instance of the state-describing pattern** — a true thing no
+  document said. See [docs/decisions.md](docs/decisions.md).
+
+- **jsdom has no `ResizeObserver` either, and `jest.setup.ts` stubs it to a no-op.**
+  `Dialog` uses one to decide whether its body has become a scrolling region and therefore
+  needs a tab stop. The stub never fires, deliberately: jsdom performs no layout, so
+  `scrollHeight` and `clientHeight` are both `0` and no measurement here could be true.
+  **Jest therefore asserts nothing about the body's tab stop in either direction**;
+  `Dialog.cy.tsx` covers both. It is a stub rather than a `typeof` guard inside the
+  component because the browser baseline (Safari 15.4) has had `ResizeObserver` since
+  Safari 13.1 — a guard would exist only to serve the test environment, which is how a
+  test concern becomes a consumer's runtime branch.
+- **Focus-trap wrap-around is not asserted, and cannot be here.** A Cypress component test
+  mounts into an iframe, and `showModal()` makes only its **own** document inert — so Tab
+  past the last stop in the ring leaves the frame and the AUT's `activeElement` becomes
+  `<body>`. Measured: from the close control, Tab reaches the body link, then Confirm,
+  then `<BODY>`. The spec therefore traverses the dialog's own stops and stops one short
+  of the end. The claim is true in a real top-level document; the harness cannot express
+  it. What _is_ asserted is the failure that actually happens in the wild — the background
+  refusing focus — and that one does fail against a non-modal dialog.
 - **No visual-regression coverage — acknowledged, not built.** The contrast contract
   catches a token change that degrades _accessibility_; nothing catches one that
   merely makes a component **look** different. And the culprit is usually a primitive
@@ -321,6 +386,15 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   `chore:` PR bumping the action majors — not folded into a component branch. Written down
   because the failure mode is time: if the repository sits for a few weeks, a green pipeline
   turns red on its own and the next session has no way to know it was seen coming.
+
+  **The same `chore:` PR should carry two more known-behind versions**, both recorded as
+  positions rather than problems: **Cypress 13 → 15** (clears the React 19 / Vite 6
+  warning) and **Jest 29 → 30**, which brings jsdom 26 and therefore a real `<dialog>`.
+  Note what the jsdom bump would and would not buy: it removes the shim, but jsdom still
+  does not paint, has no top layer and has no browser focus model, so the modality
+  assertions stay in Cypress regardless. It is worth doing to delete a stub, not to move
+  coverage.
+
 - **One axe engine, held there by a `pnpm.overrides` entry.** `jest-axe`, `cypress-axe` and
   `@storybook/addon-a11y` all resolve `axe-core@4.13.0`. They did not: the addon declares
   its own `^4.2.0` and had drifted a minor ahead of the gates, so the panel a reviewer reads
@@ -340,10 +414,28 @@ These are accessibility decisions the contrast contract records but a _token_ ca
 enforce — they land when the component is built. Full detail in
 [docs/accessibility.md](docs/accessibility.md).
 
-- **Dark-mode elevation is a border, not a shadow.** In dark, `surface-base/raised/
-overlay` all resolve to `#1F1F1F`, and the elevation shadow over it is imperceptible
-  (`elevation-4` ≈ 1.05:1). **Dialog/popover must carry a visible border in dark** —
-  nothing else separates an elevated surface from the page.
+- **Dark-mode elevation is a border, not a shadow** — _discharged by `Dialog`_, and the
+  original wording was a level too abstract. In dark, `surface-base/raised/overlay` all
+  resolve to `#1F1F1F` and `elevation-4` over it measures **1.045:1** (recomputed, not
+  inherited), so nothing but a border separates an elevated surface from the page. What the
+  entry did not say is **which** border, and that turns out to be the whole decision:
+
+  | Candidate for the dialog edge | dark value  | on `#1F1F1F` |
+  | ----------------------------- | ----------- | ------------ |
+  | `line-subtle`                 | neutral-600 | **1.89** ❌  |
+  | `line-overlay` (added)        | neutral-500 | **5.03** ✅  |
+
+  Because this border _is_ the boundary, SC 1.4.11 applies and 1.89 fails outright. A new
+  semantic token carries it: `line-overlay`, white in light (invisible on the white card,
+  exactly as Figma draws, so light mode gains no divergence) and neutral-500 in dark. It is
+  paired in the contrast contract with **`require` in dark** — the one border in the system
+  that may not rest on an exemption — so re-pointing it fails CI instead of quietly
+  un-discharging the obligation. Proven by provocation: it reports
+  `line-overlay on surface-base [dark]: requires UI (3:1), got 1.89:1`.
+
+  Same correction `line-danger` got during `Input`, in the same shape: **an obligation
+  stated one level too abstract sends the next session looking for the wrong thing.**
+
 - **Focus-ring visibility (Input)** — _discharged by `Input`._ The brand cyan ring is below
   SC 1.4.11 on white (≤2.12:1). A focused field carries **both**: `line-focus` (cyan) on the
   inner border, which is what the design draws, and `focus-strong` (neutral, 2px at 2px

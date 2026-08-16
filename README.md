@@ -4,8 +4,9 @@ A small, production-ready design system: `Button`, `Input`, `Dialog`.
 
 React · TypeScript · Tailwind CSS v4 · Storybook · Jest · Cypress · GitHub Actions
 
-> **Status:** the token layer, `Button`, `IconButton` and `Input` ship in **0.2.0**.
-> `Dialog` is next.
+> **Status:** the token layer, `Button`, `IconButton` and `Input` ship in **0.2.0**, the
+> currently published version. `Dialog` is complete on `main` and ships in the next
+> release, which completes the brief.
 
 **Live Storybook:** https://pmsg21.github.io/faster-ui/ · **npm:** [`@pmsg21/faster-ui`](https://www.npmjs.com/package/@pmsg21/faster-ui)
 
@@ -22,7 +23,14 @@ measures **1.64:1**, and darkening only the placeholder would have made it ident
 the value and erased the difference between an empty field and a filled one — so both
 move one step and the design's _relationship_ survives.
 
-Those are two of **ten** differences across the three shipped components, each measured
+`Dialog` has a third version of it that is invisible until you switch themes: in dark mode
+`surface-base`, `surface-raised` and `surface-overlay` all resolve to the same `#1F1F1F`,
+and the elevation shadow over that measures **1.045:1** — nothing at all. So the dialog's
+**border is load-bearing rather than decorative in dark**, and the obvious token for it
+(`line-subtle`, 1.89:1) is not good enough; it uses a neutral that measures 5.03:1. The
+contrast contract enforces that as a requirement, not a preference.
+
+Those are two of **ten** differences across the four shipped components, each measured
 against a specific WCAG criterion: eight are changes to something the file draws, and two
 are **additions** where it draws nothing at all — a focus state, and a visible label.
 Fixes land either in the semantic token layer or in the component; **no primitive is ever
@@ -31,7 +39,9 @@ recomputed from the shipped tokens on each CI run, so the record cannot drift fr
 
 A row is a **decision, not an occurrence** — a later component re-applying an earlier
 decision extends that row instead of adding one. The count per component is falling:
-seven, then zero, then three.
+seven, then zero, then three, then zero. Each zero carries its mechanism in the register,
+because a zero that cannot show its working is indistinguishable from having stopped
+counting.
 
 The full register, with the alternatives measured and rejected, is in
 **[docs/design-fidelity.md](docs/design-fidelity.md)**. Each component's Storybook
@@ -86,15 +96,36 @@ any project, on any version, or none.
 ```js
 import '@pmsg21/faster-ui/styles.css';
 
-import { Button, IconButton, Input } from '@pmsg21/faster-ui';
+import { Button, Dialog, IconButton, Input } from '@pmsg21/faster-ui';
 ```
 
-`0.2.0` exports exactly those three components and their prop types — nothing else. The
-public surface is pinned by a test, so neither an accidental export nor an accidental
-omission can merge quietly.
+The published `0.2.0` exports `Button`, `IconButton` and `Input`; `Dialog` joins them in
+the next release. The public surface is pinned by a test in both runners, so neither an
+accidental export nor an accidental omission can merge quietly.
+
+### Browser support
+
+**Chrome 105 · Safari 15.4 · Firefox 121.** Measured from the compiled stylesheet and the
+component sources, not estimated:
+
+| Feature                    | Set by                  | Chrome | Safari   | Firefox |
+| -------------------------- | ----------------------- | ------ | -------- | ------- |
+| `:has()`                   | `Input`'s focused field | 105    | 15.4     | **121** |
+| `:focus-visible`           | every component's ring  | 86     | **15.4** | 85      |
+| `<dialog>` + `showModal()` | `Dialog`                | 37     | 15.4     | 98      |
+
+Worth stating plainly, because the natural assumption is the opposite: **`Dialog` is the
+least binding of the three.** Its `showModal()` requirement is older than `Input`'s `:has()`
+in every engine — twenty-one months older in Firefox. The package has had this floor since
+`Input` shipped; adding a modal did not raise it, it only made someone go and measure it.
+
+One soft floor worth knowing about: Tailwind v4 emits 59 `@property` rules (Safari 16.4,
+Firefox 128), but ships an `@supports` fallback that declares the same variables for older
+engines, so it degrades rather than breaks. It is also not something any component author
+chose — a build-tool floor, invisible in every component's source.
 
 The stylesheet carries the design tokens and the component classes. It deliberately
-carries **no CSS reset**: installing three components should not restyle your
+carries **no CSS reset**: installing four components should not restyle your
 headings, lists and forms.
 
 Dark mode is one attribute on the root element — no provider, no re-render:

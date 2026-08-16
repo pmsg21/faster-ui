@@ -72,7 +72,7 @@ without flash, CSP compatibility, and control over the cascade.
 Two consequences of that choice are recorded where they bite. The stylesheet is compiled
 from `dist/index.js` rather than from `src`, so stories and test fixtures cannot leak
 utilities into a consumer's CSS. And it ships **without preflight**: a reset is an
-opinion about the document, and the document is not ours — installing three components
+opinion about the document, and the document is not ours — installing four components
 must not restyle a consumer's headings, lists and forms. The components therefore set
 what they depend on rather than inheriting it, which is why `box-border` is declared
 explicitly even though every browser already gives form controls border-box.
@@ -81,16 +81,15 @@ explicitly even though every browser already gives form controls border-box.
 
 Measured, not assumed:
 
-| Entry                        | Brotli   |
-| ---------------------------- | -------- |
-| Full library (ESM)           | 10.49 kB |
-| `import { Button }` only     | 9.59 kB  |
-| `import { IconButton }` only | 9.65 kB  |
-| `import { Input }` only      | 9.99 kB  |
-| Stylesheet                   | 5.41 kB  |
+| Entry                    | Brotli   |
+| ------------------------ | -------- |
+| Full library (ESM)       | 11.78 kB |
+| `import { Button }` only | 9.53 kB  |
+| `import { Dialog }` only | 10.07 kB |
+| Stylesheet               | 5.73 kB  |
 
 Two things fall out of that, and both are worth saying plainly rather than presenting
-10.49 kB as a win.
+11.78 kB as a win.
 
 **Tree-shaking works — but it did not, and the budget is what caught it.** An earlier
 version of this section claimed tree-shaking worked on the evidence that "dropping
@@ -116,8 +115,41 @@ like a small saving; it was actually the absence of any saving at all. **A numbe
 real does not make the inference from it real**, and the only reason it surfaced is that
 the budget was written as a hard threshold rather than a tracked figure.
 
+### The same defect, one layer down: `cva(…)` is also a call at module scope
+
+Adding `Dialog` blew the budget again, and the cause was the sentence above read too
+narrowly. `/* @__PURE__ */` had been applied to `forwardRef(…)` and nowhere else — but
+`export const buttonVariants = cva(…)` is _also_ a call expression at module scope, and a
+bundler can no more prove that one pure than the other.
+
+Measured by the budget, not noticed by review:
+
+| Entry        | Dialog added, unannotated | `FOCUSABLE_SELECTOR` literal | all `cva` annotated |
+| ------------ | ------------------------- | ---------------------------- | ------------------- |
+| `{ Button }` | 10.03 kB                  | 9.93 kB                      | **9.49 kB**         |
+| `{ Dialog }` | 10.64 kB                  | 10.58 kB                     | **9.98 kB**         |
+| Full library | 11.65 kB                  | 11.67 kB                     | 11.67 kB            |
+
+Two things worth keeping. The first is that a Button-only import grew by **440 bytes the
+moment Dialog joined the barrel**, despite Dialog importing nothing from Button — which is
+the only reason any of this surfaced. The second is that `buttonVariants` and
+`inputVariants` had been leaking the same way **since they shipped**; the numbers above
+show a Button-only import falling below its own long-standing baseline once they were
+annotated. The defect was never Dialog's. Dialog just made it big enough to cross a
+threshold.
+
+A third instance turned up in the same pass and is worth naming because it looks harmless:
+`const FOCUSABLE_SELECTOR = [ … ].join(',')`. An array `.join` reads better than a long
+literal and costs 100 bytes of retained module, for exactly the same reason — `.join` is a
+call, and a call cannot be proven pure.
+
+So the rule in [CLAUDE.md](../CLAUDE.md) is broader than it was written: **no unannotated
+call expression at module scope**, not merely `forwardRef`. And the reason the rule can be
+stated at all is that the budget is a hard threshold rather than a tracked figure — a
+tracked figure would have drifted upward four times now without anyone objecting.
+
 **Almost all of it is one dependency.** `tailwind-merge` is ~14.6 kB brotli on its own
-(unminified); `clsx` is 0.2 kB and `cva` 0.9 kB. Our three components are a rounding error
+(unminified); `clsx` is 0.2 kB and `cva` 0.9 kB. Our four components are a rounding error
 on top of it — which is also why the shaking defect above hid for so long: when the floor
 is ~9.4 kB, a component failing to drop moves the total by a few percent. So the honest
 framing is that this package's floor is the cost of `cn()`, not the cost of the components.
@@ -295,9 +327,10 @@ the day it was written.
 
 ## A gate can be green because it never ran the thing it gates
 
-Three times now, a check has reported success while never executing its subject. Three
-occurrences make it a property of how gates fail, not a run of bad luck, so it is
-recorded as a lesson rather than three anecdotes.
+**Seven times now**, a check has reported success while never executing its subject. The
+count is the point — one is bad luck, three is a pattern, seven is a property of how gates
+fail in general — so it is maintained rather than left as a list of anecdotes. Add to it
+when it happens again.
 
 1. **The Cypress binary.** It lives in `~/.cache/Cypress`, outside the pnpm store, so a
    warm cache skipped the postinstall that downloads it. The job succeeded because
@@ -312,6 +345,20 @@ recorded as a lesson rather than three anecdotes.
    Cypress 13, and that sentence rested entirely on a spec that never exercised the
    thing it claimed worked. Fixed by mounting through `cypress/react18`, which uses
    `createRoot` — still React 19's API — until the Cypress 15 bump.
+4. **The 140-byte tree-shaking measurement.** The most deceptive of the seven, because the
+   gate _did_ run and reported a real number — of nothing. See the bundle section above.
+5. **`/* @__PURE__ */` on `forwardRef` but not on `cva`.** The budget was watching, and
+   the annotation had gone to the pattern that was noticed rather than the pattern that
+   was the problem. `buttonVariants` and `inputVariants` leaked from the day they shipped.
+6. **The inertness spec that passed against a stub.** It asserted that a point over a
+   background button hit the scrim, which is equally true of a non-modal dialog whose
+   scrim covers the page. Found by provoking the harness check and then reading which
+   specs survived — see [patterns.md](patterns.md).
+7. **Every axe spec used short content.** `Dialog`'s accessibility specs never rendered a
+   body long enough to scroll, so `scrollable-region-focusable` — a **serious** violation,
+   present from the first commit — was never evaluated. The rule was enabled, the runner
+   ran, the subject was absent. Writing one spec with forty paragraphs surfaced it
+   immediately.
 
 The shared shape: **passing and covering are different claims, and a green tick cannot
 tell them apart.** "A gate that has never failed is unproven" catches a check whose
@@ -688,6 +735,169 @@ dependencies, so the override forces it past its declared pin — worth naming a
 carries. It was taken with the whole suite as evidence: 153 Jest tests, 77 Cypress tests, and
 **no new violations** on the newer engine. A newer engine finding nothing is a result worth
 stating, because the alternative outcome would have been findings rather than obstacles.
+
+## Dialog is built on the native `<dialog>`, not on a dependency and not by hand
+
+Three options, and the deciding question is which list of risks to hold.
+
+**What `showModal()` supplies**, all of it hard to hand-roll correctly: a focus trap that
+survives content changing underneath it, focus restoration to whatever was focused
+before, Escape, LIFO stacking for nested dialogs, **top-layer rendering** — which escapes
+`overflow: hidden`, `transform` and every stacking context, something no portal can fix
+for a transformed ancestor — and **background inertness for pointer, keyboard and
+assistive technology at once**. That last is the failure the brief calls the most common
+modal defect, and one call closes all three routes.
+
+**Rejected: a headless dependency** (`@radix-ui/react-dialog`). Correct and
+battle-tested, but it pulls roughly ten internal packages into a library whose entire
+published surface is 11.67 kB brotli — and the entry above on `tailwind-merge` already
+names dependency share as the thing to watch here. Tripling the package for one component
+is the wrong trade at four components.
+
+**Rejected: hand-rolling.** Everything in the first paragraph would be re-implemented, and
+the parts that are hardest are exactly the parts that ship silently broken.
+
+It is also the same principle `Button` applied in using a real `<button>` and `Input` in
+using the native `disabled` attribute — with far more to buy here. A design system that
+reaches for a dependency where the platform already solves the problem is one that
+accumulates them.
+
+**The baseline, stated rather than assumed**, because it is the first question a reviewer
+should ask: `<dialog>` + `showModal()` is Chrome 37, Edge 79, **Safari 15.4** and
+**Firefox 98** — the last two both March 2022.
+
+**And it is not the package's floor**, which is the part worth recording. The PR for this
+component originally claimed "no other component in the package has a floor". That was
+false, and measuring it produced a better fact than the one it replaced:
+
+| Feature                    | Set by                  | Chrome | Safari   | Firefox |
+| -------------------------- | ----------------------- | ------ | -------- | ------- |
+| `:has()`                   | `Input`'s focused field | 105    | 15.4     | **121** |
+| `:focus-visible`           | every component's ring  | 86     | **15.4** | 85      |
+| `<dialog>` + `showModal()` | `Dialog`                | 37     | 15.4     | 98      |
+
+The package floor is **Chrome 105 / Safari 15.4 / Firefox 121**, and `Dialog` is the
+**least** binding of the three — its requirement is older than `Input`'s in every engine,
+by twenty-one months in Firefox. `Button` set Safari 15.4 with `:focus-visible` in the very
+first component. Adding a modal did not raise the floor; it prompted someone to measure one
+that had existed, unrecorded, since `Input` shipped.
+
+There is also a **soft** floor nobody chose: Tailwind v4's output carries 59 `@property`
+rules (Safari 16.4, Firefox 128), with an `@supports` block declaring the same 24 `--tw-*`
+variables for engines that lack them — so it degrades rather than breaks. It is invisible in
+every component's source and would never be found by reading the code, which is exactly why
+it belongs in a document.
+
+This is the **fifth instance of the state-describing pattern**: a true thing that no document
+said. The others were the jsdom shim (in code), the stale `CLAUDE.md` after `Button`, the
+README that lagged `Input`, and `release-verification.md` silently skipping `0.1.0`. The
+shape repeats often enough that the useful question on any claim is not "is this right?" but
+"when was this last measured?"
+
+**What the platform does not supply, and is therefore ours:** page scroll locking (the
+background is inert but still scrolls under the wheel), backdrop-click dismissal, and the
+initial focus target. The last is a real decision rather than a gap — the close control is
+first in DOM order because the design puts it in the title row, and landing a keyboard
+user there tells them only how to leave, so the resolver deliberately skips it.
+
+**And one cost accepted rather than solved: there is no exit animation.** `close()` leaves
+the top layer immediately, and the modern remedy (`@starting-style` with
+`transition-behavior: allow-discrete`) has a 2024 baseline — narrower than the component's
+own. The Figma file specifies no motion for Dialog, so this is a recorded omission rather
+than a compromise: a hard problem converted into a decision by checking whether anyone
+asked for it.
+
+## The scrim is a real element, because `::backdrop` is younger than `<dialog>`
+
+The obvious way to paint a modal backdrop is `dialog::backdrop { background-color:
+var(--color-scrim) }` — one rule, no extra DOM. It was the plan, and checking it before
+writing any component code is the only reason it is not what shipped.
+
+Two baselines are involved and they are two years apart:
+
+| Feature                                                           | Chrome  | Firefox | Safari   |
+| ----------------------------------------------------------------- | ------- | ------- | -------- |
+| `<dialog>` + `showModal()`                                        | 37      | **98**  | **15.4** |
+| `::backdrop` inherits from its originating element (tree-abiding) | **122** | 120     | **17.4** |
+
+Before it became tree-abiding, `::backdrop` inherited from **nothing**. Custom properties
+are inherited properties, so a `--color-scrim` declared on `:root` is simply not visible
+there — `var(--color-scrim)` is invalid at computed-value time, and `background-color`
+falls back to its initial value, `transparent`.
+
+That is the part worth keeping: **the failure is not a wrong colour, it is no scrim at
+all**, on browsers that otherwise support `showModal()` perfectly. A modal whose backdrop
+silently vanishes on Safari 16 is a functional defect, and it would have been invisible in
+every gate we run, all of which use a current Chrome. The plan for this component said the
+degradation would be "graceful". It would not have been.
+
+So the `<dialog>` is a transparent, full-viewport shell and the **scrim is a real element
+inside it**. The only `::backdrop` rule left is `background-color: transparent`, a literal
+that involves no custom property and is therefore safe on every engine that has `<dialog>`
+at all. The scrim's baseline collapses onto the dialog's own.
+
+Three things fall out that are better than the original plan rather than merely equivalent:
+
+- **Backdrop dismissal stops being a hit-test.** The documented trick for `::backdrop` —
+  which is not an event target — is to compare a click's coordinates against the dialog's
+  bounding rect. With a real scrim the check is `event.target === scrim`, which is not an
+  approximation of anything.
+- **The scrim is measurable by the ordinary instrument.** `getComputedStyle` on a
+  pseudo-element is exactly the tool that already lied to us about `::placeholder` (see
+  [CLAUDE.md](../CLAUDE.md) known-gaps). A real element has no such caveat, so this
+  component does not add a second entry to that list.
+- **Centring becomes ours and therefore testable**, rather than the UA's `margin: auto` on
+  a max-width box we would then be fighting.
+
+The cost is one extra DOM node and taking over viewport sizing. Worth it.
+
+Method note, because the conclusion is only as good as how it was reached: the current
+engine was probed first (it resolves the property correctly and paints `#B3B3B3`), which
+proves nothing about the baseline — so the version matrix above was looked up rather than
+inferred from a passing check. **A feature working in the browser in front of you is the
+weakest possible evidence about the browsers you support.**
+
+**The plan for this component said the degradation would be "graceful". It would not
+have been**, and that error is worth naming as a class rather than an incident. It is the
+same shape as the 140-byte tree-shaking inference recorded above: a plausible claim, made
+confidently, that nobody had measured. Both were reasonable-sounding predictions about
+behaviour at a boundary — an old browser, an unused import — where the boundary is exactly
+where intuition has no data. The tell in both cases is a sentence that describes what
+_would_ happen rather than what was observed to happen.
+
+The general lesson, which is the reason this is its own entry rather than a line in the
+section above: **two platform features that arrive together in your head can be two years
+apart in the field.** `<dialog>` and a usable `::backdrop` read as one capability — they
+are specified together, documented together, and demoed together — and they became
+available twenty-three months apart. Anything that pairs a element with a pseudo-element,
+or a JavaScript API with the CSS that styles it, deserves the same two-column check.
+
+## A translucent token must be visible to the guard without being measurable by it
+
+Adding `--color-scrim` surfaced a hole in the contrast contract, and the two halves of the
+fix pull in opposite directions.
+
+`parseTheme` resolved only `^#[0-9a-fA-F]{6}$`. A token carrying alpha returned `null`,
+was dropped from the parsed theme, never appeared in `colorTokens`, and so could not be
+reported by `findUnaccountedTokens`. **A colour token invisible to the guard whose entire
+purpose is that a gap cannot hide** — the same shape as every other entry in this file: a
+check that is green because it never reached its subject.
+
+Widening the parser to accept `#rrggbbaa` fixes visibility and immediately creates a worse
+problem. `relativeLuminance` reads the first six digits, so a translucent token in a
+`PAIRS` entry would measure as though it were opaque and produce a confident, plausible,
+**wrong** ratio. WCAG contrast is defined between opaque colours; a translucent one has no
+ratio until it is composited over something.
+
+So the two capabilities are separated by construction rather than by memory:
+`HEX_COLOR` accepts eight digits so the completeness guard can _see_ such a token, and
+`findAlphaTokensInPairs` fails the build if one ever reaches a pair. `scrim` sits in
+`IGNORED` with its reason, and the reason is now enforced rather than trusted — the same
+move `SHARED_VALUE` made when "these two tokens have the same value" turned out to be a
+claim a comment could not keep honest.
+
+The general form: **a wrong number that passes is worse than a missing one**, because
+nothing ever asks about it again.
 
 ## Contrast is a contract, not a document
 
