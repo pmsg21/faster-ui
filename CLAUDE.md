@@ -185,7 +185,19 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   test results. None of it catches whether the thing **feels** right: whether a focus
   ring reads at 2px offset on a cyan fill, whether a spinner is legible at `sm`,
   whether disabled looks disabled rather than broken. That needs eyes and a keyboard,
-  and it is far cheaper before a PR than after.
+  and it is far cheaper before a PR than after. **Open Storybook's Accessibility panel on
+  every story while you are there** — a Serious `color-contrast` violation sat in it on
+  `Button`'s danger stories from the day they shipped, through a full hand-test pass,
+  because the CI gate was satisfied by a declared exemption and the panel was reporting
+  honestly to nobody (see [docs/decisions.md](docs/decisions.md)).
+- **An inapplicable rule and an accepted exemption are not written the same way.** Both
+  would be `{ enabled: false }`, which is what makes an accessibility decision look like
+  configuration. [`a11y.config.ts`](a11y.config.ts) is the single source for both runners:
+  page-structure rules are off **once, globally**, with a stated test for what qualifies;
+  a contrast exemption is reachable only through a helper that **requires** the measured
+  ratio, the `design-fidelity.md` row and the reason, and it **narrows** the rule by
+  selector rather than disabling it — so a _different_ contrast failure in the same story
+  is still caught. Proven by provocation, both directions.
 
 ## Where the detail lives
 
@@ -287,6 +299,11 @@ system tooling`). **Default to no body at all.** Never narrate the diff
   rather than the pseudo-element's cascade, so the painted placeholder cannot be read from a
   component test. The emitted rule is correct and was checked by hand in the compiled CSS.
   Visual regression is what closes this properly.
+- **Storybook and the gates run different axe engines.** `@storybook/addon-a11y` resolves
+  `axe-core@4.13.0`; `jest-axe` and Cypress both use the pinned `4.9.1`. The axe
+  _configuration_ is shared through `a11y.config.ts`, but the engine is not, so a Cypress
+  proof does not strictly transfer to the panel. Aligning them via a pnpm override is the
+  obvious fix and has not been taken yet.
 - **The completeness guard covers colour only.** `parseTheme` filters on
   `--color-*`, so `--radius-*`, `--text-*` and `--shadow-*` are invisible to it: a
   radius or type token can be added with no decision recorded and nothing goes red.

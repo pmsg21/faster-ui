@@ -220,19 +220,38 @@ already holds a keyboard-derived ring leaves the ring in place — correct brows
 behaviour, and a trap when writing the "no ring on click" assertion. Click a control that
 was not already keyboard-focused.
 
-### axe in a component test: disable the page rules, never the interesting ones
+### An inapplicable rule and an accepted exemption must not be written the same way
 
-`landmark-one-main` and `page-has-heading-one` cannot apply to a component mounted in
-isolation — there is no page here to have a main landmark or an `h1`. Those two are
-disabled; everything else stays on, `color-contrast` above all, since it is the reason to
-run axe in a browser at all.
+Both come out as `{ enabled: false }`, and that shared spelling is the whole problem: it
+makes an accessibility decision look like configuration, and it makes the question "how
+many rules are off in this project?" one with a quietly growing answer. Three kinds live
+in [`a11y.config.ts`](../a11y.config.ts), shared by Storybook and Cypress so a rule cannot
+be off in one runner for a reason the other has never heard of:
 
-Where a contrast exemption is deliberate and recorded (the danger tone's non-solid label,
-row 4 of [design-fidelity.md](design-fidelity.md)), `color-contrast` is disabled **for
-that assertion only**, with the exemption still enforced by the contrast contract — which
-pins the exact ratio and fails if it drifts in either direction. Disabling a rule and
-losing the check are not the same thing, but they look identical unless the second
-instrument is named.
+1. **Inapplicable — declared once, globally.** `landmark-one-main`, `page-has-heading-one`
+   and `region` ask questions about page composition. A component mounted in isolation has
+   no page, so they have nothing to evaluate. Not overridden — inapplicable. The test for
+   membership is written next to the list: _would turning this off hide a defect in the
+   component itself?_ If yes, it does not belong there.
+2. **An accepted exemption — never global, and never a disable.** Reachable only through
+   `checkA11yWithAcceptedContrast` / `storyAcceptedContrast`, which take the measured
+   ratio, the register row and the reason as **required** arguments. The rule stays
+   **enabled** and is narrowed by selector to skip one named region.
+3. **A Design Fidelity story**, whose "As drawn in Figma" column exists to render values
+   the token layer rejected. Its own factory, no ratio, and still a narrowing — the
+   "Shipped" column beside it stays checked.
+
+**Narrowing beats disabling, and the difference is not cosmetic.** Switching
+`color-contrast` off to hide one known pair also hides every _future_ failure in that
+story. That is the same shape as a stale exemption in the contrast contract, which is
+already solved by making it fail once it stops being necessary. The narrowing is proven by
+provocation: with the exemption in place, an unmarked low-contrast element in the same
+mount is still reported, and removing that element turns the test red — so the assertion
+is not vacuous.
+
+`region` is the reason this got restructured. It was disabled in one spec of three, purely
+because Button and IconButton render no bare text and never tripped it. A rule discovered
+per component instead of declared once is the tell that the two kinds had been conflated.
 
 Print the violations. By default a failure reports a count — "2 accessibility violations
 were detected" — and the detail stays in the browser's command log, invisible in CI, which

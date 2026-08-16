@@ -604,6 +604,44 @@ demonstrably do.
 Recorded rather than merely omitted, because "we did not think of it" and "we decided against
 it" are indistinguishable in a codebase.
 
+## A Serious violation sat in Storybook's panel for a component and a half
+
+Hand-testing `Input` found a **Serious** `color-contrast` violation on every error story:
+`content-danger` on white, 4.21 against the 4.5 AA bar. It is not a defect — it is the
+exemption already recorded as row 4 of [design-fidelity.md](design-fidelity.md), pinned by
+the contrast contract, and accepted because `danger-700` is the darkest red the ramp offers.
+
+The finding is not the violation. It is that **the same violation had been showing on
+`Button`'s danger stories since `Button` shipped**, through a full hand-test pass, and
+nobody had looked. Confirmed by provoking it: re-enabling the rule on Button's own spec
+reports `color-contrast (serious)` on all three non-solid danger variants. The a11y addon
+runs at axe defaults with no parameters anywhere, so the panel had been saying so the whole
+time.
+
+Two instruments were each individually fine and collectively silent. The **CI gate** passed
+because the exemption was declared, which is what a declared exemption is for. The **panel**
+reported it honestly to nobody. Neither was wrong; between them a real number went
+unexamined for a component and a half. That is a better argument for opening the panel
+routinely as part of hand-testing than any rule could be — and it is why the hand-test list
+in [CLAUDE.md](../CLAUDE.md) now names it explicitly.
+
+The remedy was not to disable the rule, which would have made two silences instead of one.
+See [patterns.md](patterns.md) on the three kinds of axe configuration and why an
+inapplicable rule and an accepted exemption must not be written the same way.
+
+### The two runners do not share an axe engine
+
+While auditing the above: `@storybook/addon-a11y` declares `axe-core@^4.2.0` and resolves
+**4.13.0**, while `jest-axe` pins **4.9.1** and Cypress injects
+`node_modules/axe-core/axe.min.js` — the same 4.9.1. So the panel a maintainer reads and the
+gate that blocks a merge are running different engines, and rule sets change between minor
+versions.
+
+Recorded rather than fixed, because the _configuration_ is now shared through one file and
+that was the larger risk. But it bounds what a Cypress proof can claim about the panel, and
+it narrows the existing claim in this document that "both test runners measure with the same
+engine" — true of Jest and Cypress, never true of Storybook.
+
 ## Contrast is a contract, not a document
 
 The accessibility decisions (which brand conflicts are accepted, which failures are
