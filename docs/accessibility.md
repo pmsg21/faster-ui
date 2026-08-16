@@ -228,21 +228,31 @@ rather than by changing code, and "we checked and it was fine" is otherwise indi
 from "we did not check".
 
 1. **Initial focus landed on the dialog container, not on an action** — in the one story
-   with no footer. The resolver ran and did exactly what it was specified to do: skip the
-   close control, and fall back to the container when nothing else is focusable. Both
-   runners asserted that behaviour and passed. The **decision** was wrong, for a reason
-   neither the plan nor the tests had considered: a container draws no focus ring, so a
-   sighted keyboard user saw nothing focused at all, and when dismissal is the only action
-   the close control is not "how to leave" — it is the action. The fallback chain now ends
-   `… ?? close ?? dialog`.
+   with no footer. **This is the fourth defect the hand-test rule has found, and it is a
+   different kind from the first three.** Those were absences: a missing capability, an
+   inherited-but-wrong interaction model, a violation nobody had read. This one was
+   present, deliberate and fully tested — the resolver ran, did exactly what it was
+   specified to do, and two tests (one per runner) asserted that behaviour and passed. The
+   **specification** was the defect, which is the one failure mode no gate can catch:
+   provoking a failure proves a test measures the code, and nothing in a test suite can
+   prove the code should behave that way.
+
+   Why the original decision was wrong, since the reason had not been written anywhere:
+   **a container draws no focus ring**, so a sighted keyboard user saw nothing focused and
+   had no indication of where they were; and the skip rule's premise — that the close
+   control only tells a user how to leave — **is false when leaving is the only available
+   action**. The fallback chain now ends `… ?? close ?? dialog`.
 
 2. **The body is not reachable by Tab, and should not be** — except when it scrolls. Text
    is not in the tab order anywhere on the web, and `aria-describedby` announces the body
    on entry regardless. But once the body **overflows**, a keyboard-only user (no virtual
    cursor) has no way to scroll it and cannot read past the fold. axe names this
    `scrollable-region-focusable`, and reported it as **serious** the moment a spec was
-   written that used long enough content — every existing axe spec had used short content,
-   so the gate had never run on its subject. The body now takes a tab stop exactly when it
+   written that used long enough content — **every existing axe spec had used short
+   content, so the gate had never run on its subject.** The rule was enabled, the runner
+   ran, and the subject was absent; it is the seventh instance of that pattern recorded in
+   [decisions.md](decisions.md), where the count is maintained precisely because the
+   pattern's value is in its frequency. The body now takes a tab stop exactly when it
    becomes a scrolling region, which is the same runtime-not-a-prop shape as `Scrollable`
    itself.
 

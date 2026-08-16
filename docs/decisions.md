@@ -327,9 +327,10 @@ the day it was written.
 
 ## A gate can be green because it never ran the thing it gates
 
-Three times now, a check has reported success while never executing its subject. Three
-occurrences make it a property of how gates fail, not a run of bad luck, so it is
-recorded as a lesson rather than three anecdotes.
+**Seven times now**, a check has reported success while never executing its subject. The
+count is the point — one is bad luck, three is a pattern, seven is a property of how gates
+fail in general — so it is maintained rather than left as a list of anecdotes. Add to it
+when it happens again.
 
 1. **The Cypress binary.** It lives in `~/.cache/Cypress`, outside the pnpm store, so a
    warm cache skipped the postinstall that downloads it. The job succeeded because
@@ -344,6 +345,20 @@ recorded as a lesson rather than three anecdotes.
    Cypress 13, and that sentence rested entirely on a spec that never exercised the
    thing it claimed worked. Fixed by mounting through `cypress/react18`, which uses
    `createRoot` — still React 19's API — until the Cypress 15 bump.
+4. **The 140-byte tree-shaking measurement.** The most deceptive of the seven, because the
+   gate _did_ run and reported a real number — of nothing. See the bundle section above.
+5. **`/* @__PURE__ */` on `forwardRef` but not on `cva`.** The budget was watching, and
+   the annotation had gone to the pattern that was noticed rather than the pattern that
+   was the problem. `buttonVariants` and `inputVariants` leaked from the day they shipped.
+6. **The inertness spec that passed against a stub.** It asserted that a point over a
+   background button hit the scrim, which is equally true of a non-modal dialog whose
+   scrim covers the page. Found by provoking the harness check and then reading which
+   specs survived — see [patterns.md](patterns.md).
+7. **Every axe spec used short content.** `Dialog`'s accessibility specs never rendered a
+   body long enough to scroll, so `scrollable-region-focusable` — a **serious** violation,
+   present from the first commit — was never evaluated. The rule was enabled, the runner
+   ran, the subject was absent. Writing one spec with forty paragraphs surfaced it
+   immediately.
 
 The shared shape: **passing and covering are different claims, and a green tick cannot
 tell them apart.** "A gate that has never failed is unproven" catches a check whose

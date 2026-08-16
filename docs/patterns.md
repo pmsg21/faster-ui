@@ -334,6 +334,40 @@ Step two generalises past this repository, and past testing. It is the same ques
 answer is cheap to obtain: you already have a broken system in front of you, and anything
 still reporting success is telling you what it is not connected to.
 
+### The failure provocation cannot find: a correct test of a wrong specification
+
+Everything above is about tests that fail to reach their subject. `Dialog` produced the
+other kind, and it is worth separating because **the remedy is different**.
+
+Its initial-focus resolver was specified to skip the close control and, if nothing else
+could take focus, fall back to the dialog container. Two tests asserted exactly that, one
+per runner. Both passed. The resolver ran, reached its subject, and was measured
+correctly — and the behaviour was wrong.
+
+It was wrong for two reasons nobody had written down:
+
+- **A container draws no focus ring.** A screen-reader user heard the title; a sighted
+  keyboard user saw nothing focused at all, with no indication of where they were.
+- **The skip rule's premise did not hold.** The close control is skipped because landing
+  there tells a keyboard user how to leave rather than what to decide — but when
+  dismissal is the _only_ action, leaving **is** the decision, and skipping it removes the
+  one thing the dialog is for.
+
+Provocation cannot find this. Break the subject and the test goes red exactly as it
+should; the test is faithful. Nor can review, because the code matches the specification —
+the specification is the defect, and it reads perfectly well until someone uses it.
+
+**What found it was a person opening the component and pressing Tab.** That is the fourth
+defect the hand-test rule has caught (see
+[accessibility.md](accessibility.md#verified-by-hand-because-no-gate-can)), and the
+sharpest argument for it so far, because the three before it were absences — a missing
+capability, an inherited-but-wrong interaction model, a violation nobody had read. This
+one was present, deliberate, tested, and wrong.
+
+The general form, and the boundary of everything else in this section: **a test suite can
+only be as correct as the specification it encodes.** Provoking a gate proves the test
+measures the code. Nothing in a test suite can prove the code should behave that way.
+
 ### Real keyboard needs real events
 
 Cypress's own `.type('{enter}')` dispatches synthetic key events, which never trigger a
