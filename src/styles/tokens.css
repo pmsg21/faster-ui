@@ -252,7 +252,7 @@
    * There is deliberately NO accent-subtle: the extracted Button shows the accent
    * ghost wash is NEUTRAL (surface-hover / surface-active), not a brand tint. Only
    * the danger tone tints its wash. See docs/decisions.md. */
-  --color-accent-solid: var(--primary-600);
+  --color-accent-solid: var(--primary-700);
   --color-accent-solid-hover: var(--primary-500); /* hover lightens (source) */
   --color-accent-solid-active: var(--primary-700); /* active darkens (source) */
   --color-accent-solid-disabled: var(--primary-300);
