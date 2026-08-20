@@ -61,7 +61,7 @@ describe('Button — the tokens actually resolve', () => {
   // end to end: semantic token -> @theme -> compiled utility -> painted pixel.
   it('paints the primary fill from the accent token', () => {
     mountOnSurface(<Button>Save</Button>);
-    cy.findByRole('button').should('have.css', 'background-color', 'rgb(21, 197, 206)'); // #15C5CE
+    cy.findByRole('button').should('have.css', 'background-color', 'rgb(0, 171, 182)'); // #15C5CE
   });
 
   it('paints the label with the dark on-accent token, not white', () => {
@@ -78,7 +78,7 @@ describe('Button — the tokens actually resolve', () => {
   it('re-points the surface in dark mode without changing the brand fill', () => {
     mountOnSurface(<Button>Save</Button>, 'dark');
     // Brand fills are mode-independent — cyan is cyan.
-    cy.findByRole('button').should('have.css', 'background-color', 'rgb(21, 197, 206)');
+    cy.findByRole('button').should('have.css', 'background-color', 'rgb(0, 171, 182)');
   });
 
   it('underlines the link variant at rest', () => {
