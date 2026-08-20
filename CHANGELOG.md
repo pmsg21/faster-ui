@@ -1,5 +1,11 @@
 # @pmsg21/faster-ui
 
+## 0.4.0
+
+### Minor Changes
+
+- 3a05b3a: Change the value of the `--color-accent-solid` from `var(--primary-600);` to `var(--primary-700);`
+
 ## 0.3.0
 
 ### Minor Changes
